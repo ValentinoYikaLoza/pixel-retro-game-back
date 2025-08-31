@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\UserMissionModel;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -10,27 +11,25 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MissionUpdated
+class MissionUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    /**
-     * Create a new event instance.
-     */
-    public function __construct()
+    public $mission;
+
+    public function __construct(UserMissionModel $mission)
     {
-        //
+        $this->mission = $mission->load('mission');
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
-     */
-    public function broadcastOn(): array
+    public function broadcastOn()
     {
-        return [
-            new PrivateChannel('channel-name'),
-        ];
+        // Canal privado por usuario
+        return new Channel("missions.{$this->mission->user_id}");
+    }
+
+    public function broadcastAs()
+    {
+        return 'mission.progress';
     }
 }

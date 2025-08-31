@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('user_mission', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
+            $table->integer('current_value')->default(0);
+            $table->timestamp('completed_at')->nullable();
             $table->unsignedBigInteger('mission_id');
             $table->unsignedBigInteger('status_id');
 

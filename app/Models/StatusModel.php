@@ -10,6 +10,7 @@ class StatusModel extends Model
     const PENDING = 1;
     const IN_PROGRESS = 2;
     const COMPLETED = 3;
+    const FAILED = 4;
 
     public $timestamps = false;
 

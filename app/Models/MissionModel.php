@@ -14,23 +14,29 @@ class MissionModel extends Model
     protected $table = 'mission';
     protected $primaryKey = 'id';
     protected $fillable = [
-        'name',
         'description',
-        'total_points',
-        'current_points',
+        'total_value',
     ];
 
     protected $casts = [
-        'name' => 'string',
         'description' => 'string',
-        'total_points' => 'integer',
-        'current_points' => 'integer',
+        'total_value' => 'integer',
     ];
 
     protected $hidden = [
         'created_at',
         'updated_at'
     ];
+
+    public function game()
+    {
+        return $this->belongsTo(GameModel::class, 'game_id');
+    }
+
+    public function missionType()
+    {
+        return $this->belongsTo(MissionTypeModel::class, 'mission_type_id');
+    }
 
     public function frequency()
     {

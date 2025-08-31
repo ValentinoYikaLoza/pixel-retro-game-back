@@ -14,6 +14,16 @@ class UserMissionModel extends Model
     protected $table = 'user_mission';
     protected $primaryKey = 'id';
 
+    protected $fillable = [
+        'current_value',
+        'completed_at',
+    ];
+
+    protected $casts = [
+        'current_value' => 'integer',
+        'completed_at' => 'datetime',
+    ];
+
     protected $hidden = [
         'created_at',
         'updated_at'

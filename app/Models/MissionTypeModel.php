@@ -5,27 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class GameModel extends Model
+class MissionTypeModel extends Model
 {
-    const SNAKE = 1;
-    const TETRIS = 2;
-    const PIXEL_INVADERS = 3;
-    const PACMAN = 4;
+    const POINTS = 1;
+    const MATCHES = 2;
+    const STREAK = 3;
+    const MULTIGAME = 4;
+    const EXACT = 5;
 
     public $timestamps = false;
 
     use HasFactory;
 
-    protected $table = 'game';
+    protected $table = 'mission_type';
     protected $primaryKey = 'id';
     protected $fillable = [
         'name',
-        'title'
     ];
 
     protected $casts = [
         'name' => 'string',
-        'title' => 'string',
     ];
 
     protected $hidden = [
