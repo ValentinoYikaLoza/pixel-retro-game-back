@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('user', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('score');
+            $table->integer('score');
             $table->integer('coins');
             $table->integer('lives');
             $table->integer('streak');
-            $table->integer('timesRankedFirst');
+            $table->integer('times_ranked_first');
             $table->unsignedBigInteger('division_id');
             $table->unsignedBigInteger('country_id');
 
