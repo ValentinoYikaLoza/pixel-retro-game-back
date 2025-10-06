@@ -17,7 +17,6 @@ class MissionTypeSeeder extends Seeder
             ['id' => MissionTypeModel::POINTS, 'name' => 'Points'],
             ['id' => MissionTypeModel::MATCHES, 'name' => 'Matches'],
             ['id' => MissionTypeModel::STREAK, 'name' => 'Streak'],
-            ['id' => MissionTypeModel::MULTIGAME, 'name' => 'Multigame'],
             ['id' => MissionTypeModel::EXACT, 'name' => 'Exact'],
         ];
 

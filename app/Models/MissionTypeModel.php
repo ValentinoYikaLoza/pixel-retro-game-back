@@ -10,7 +10,6 @@ class MissionTypeModel extends Model
     const POINTS = 1;
     const MATCHES = 2;
     const STREAK = 3;
-    const MULTIGAME = 4;
     const EXACT = 5;
 
     public $timestamps = false;

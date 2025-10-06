@@ -34,7 +34,6 @@ class MissionSeeder extends Seeder
                 GameModel::SNAKE,
                 GameModel::PACMAN,
                 GameModel::PIXEL_INVADERS,
-                null,
             ]);
 
             $type = Arr::random([
@@ -42,7 +41,6 @@ class MissionSeeder extends Seeder
                 MissionTypeModel::POINTS,
                 MissionTypeModel::MATCHES,
                 MissionTypeModel::STREAK,
-                MissionTypeModel::MULTIGAME,
                 MissionTypeModel::EXACT
             ]);
 
@@ -51,7 +49,7 @@ class MissionSeeder extends Seeder
 
             $missions[] = [
                 'description'     => $description,
-                'total_points'    => $points,
+                'total_value'    => $points,
                 'frequency_id'    => $frequency,
                 'reward_id'       => $this->getRewardByPoints($points),
                 'mission_type_id' => $type,
@@ -70,7 +68,6 @@ class MissionSeeder extends Seeder
             MissionTypeModel::POINTS    => $this->generatePointsMission($frequency, $game_name),
             MissionTypeModel::MATCHES   => $this->generateMatchesMission($frequency, $game_name),
             MissionTypeModel::STREAK    => $this->generateStreakMission($frequency, $game_name),
-            MissionTypeModel::MULTIGAME => $this->generateMultiGameMission($frequency),
             MissionTypeModel::EXACT     => $this->generateExactMission($frequency, $game_name),
         };
     }
@@ -105,16 +102,6 @@ class MissionSeeder extends Seeder
         return [$streak, "Juega {$streak} partidas seguidas sin perder en {$game}"];
     }
 
-    private function generateMultiGameMission(int $frequency): array
-    {
-        $matches = match ($frequency) {
-            FrequencyModel::DAILY   => rand(5, 10),
-            FrequencyModel::WEEKLY  => rand(20, 40),
-            FrequencyModel::MONTHLY => rand(50, 100),
-        };
-        return [$matches, "Juega {$matches} partidas combinadas entre Tetris y Snake"];
-    }
-
     private function generateExactMission(int $frequency, string $game): array
     {
         $exactPoints = match ($frequency) {
@@ -137,11 +124,10 @@ class MissionSeeder extends Seeder
     private function getGameName(int $gameId): string
     {
         return match ($gameId) {
-            GameModel::TETRIS         => 'Tetris Game',
-            GameModel::SNAKE          => 'Snake Game',
-            GameModel::PACMAN         => 'Pacman Game',
-            GameModel::PIXEL_INVADERS => 'Pixel Invaders Game',
-            default                    => 'cualquier juego',
+            GameModel::TETRIS         => 'Tetris',
+            GameModel::SNAKE          => 'Snake',
+            GameModel::PACMAN         => 'Pacman',
+            GameModel::PIXEL_INVADERS => 'Pixel Invaders',
         };
     }
 }
