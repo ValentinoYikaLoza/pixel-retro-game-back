@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DivisionController;
+use App\Http\Controllers\MissionController;
 use App\Http\Controllers\TimeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -37,6 +38,14 @@ Route::middleware('api')->group(function () {
             Route::get('getTimeLeftTillNextDay', 'getTimeLeftTillNextMidnight');
             Route::get('getTimeLeftTillNextWeek', 'getTimeLeftTillNextSunday20');
             Route::get('getTimeLeftTillNextMonth', 'getTimeLeftTillNextMonthEndMidnight');
+            Route::get('getCurrentMonth', 'getCurrentMonth');
+            Route::get('getTimeLeft', 'getTimeLeftList');
+        }
+    );
+
+    Route::controller(MissionController::class)->group(
+        function () {
+            Route::post('listMissions', 'list');
         }
     );
 });

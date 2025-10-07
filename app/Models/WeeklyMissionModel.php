@@ -5,13 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MissionModel extends Model
+class WeeklyMissionModel extends Model
 {
     public $timestamps = false;
 
     use HasFactory;
 
-    protected $table = 'mission';
+    protected $table = 'weekly_mission';
     protected $primaryKey = 'id';
     protected $fillable = [
         'description',
@@ -36,11 +36,6 @@ class MissionModel extends Model
     public function missionType()
     {
         return $this->belongsTo(MissionTypeModel::class, 'mission_type_id');
-    }
-
-    public function frequency()
-    {
-        return $this->belongsTo(FrequencyModel::class, 'frequency_id');
     }
 
     public function reward()

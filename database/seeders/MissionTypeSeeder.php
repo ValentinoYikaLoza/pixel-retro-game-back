@@ -16,7 +16,6 @@ class MissionTypeSeeder extends Seeder
         $rows = [
             ['id' => MissionTypeModel::POINTS, 'name' => 'Points'],
             ['id' => MissionTypeModel::MATCHES, 'name' => 'Matches'],
-            ['id' => MissionTypeModel::STREAK, 'name' => 'Streak'],
             ['id' => MissionTypeModel::EXACT, 'name' => 'Exact'],
         ];
 

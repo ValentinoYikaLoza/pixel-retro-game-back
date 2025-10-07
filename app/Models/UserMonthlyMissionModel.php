@@ -5,13 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class UserMissionModel extends Model
+class UserMonthlyMissionModel extends Model
 {
     public $timestamps = false;
 
     use HasFactory;
 
-    protected $table = 'user_mission';
+    protected $table = 'user_monthly_mission';
     protected $primaryKey = 'id';
 
     protected $fillable = [
@@ -34,9 +34,9 @@ class UserMissionModel extends Model
         return $this->belongsTo(UserModel::class, 'user_id');
     }
 
-    public function mission()
+    public function monthlyMission()
     {
-        return $this->belongsTo(MissionModel::class, 'mission_id');
+        return $this->belongsTo(MonthlyMissionModel::class, 'monthly_mission_id');
     }
 
     public function status()

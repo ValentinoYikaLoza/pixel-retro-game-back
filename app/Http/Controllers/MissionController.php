@@ -2,83 +2,113 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\MissionUpdated;
-use App\Models\GameModel;
-use App\Models\MissionTypeModel;
 use App\Models\StatusModel;
-use App\Models\UserMissionModel;
+use App\Models\UserModel;
+use App\Models\UserDailyMissionModel;
+use App\Models\UserWeeklyMissionModel;
+use App\Models\UserMonthlyMissionModel;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class MissionController extends Controller
 {
-    /**
-     * Avanza progreso en las misiones activas de un usuario.
-     */
-    public function progress(UserMissionModel $userMission, int $value = 0): void
+    public function list(Request $request)
     {
-        $updated = $this->handleMissionProgress($userMission, $value);
-
-        if ($updated) {
-            broadcast(new MissionUpdated($userMission))->toOthers();
-        }
+        $missions = $this->listBase($request);
+        return $this->ok("Listado de misiones", $missions);
     }
 
-    /**
-     * Maneja la lógica de progreso según el tipo de misión.
-     */
-    private function handleMissionProgress(UserMissionModel $userMission, int $value): bool
+    public function listBase(Request $request)
     {
-        $mission = $userMission->mission;
+        $user_id = $request->user_id;
+        $user = UserModel::find($user_id);
 
-        return match ($mission->mission_type_id) {
-            MissionTypeModel::POINTS =>
-            $this->updateProgress($userMission, $value),
-
-            MissionTypeModel::MATCHES =>
-            $this->updateProgress($userMission, 1),
-
-            MissionTypeModel::STREAK =>
-            $value > 0
-                ? $this->updateProgress($userMission, $value, true)
-                : false,
-
-            MissionTypeModel::EXACT =>
-            $value == $mission->total_value
-                ? $this->completeMission($userMission)
-                : false,
-
-            default => false,
-        };
-    }
-
-    /**
-     * Actualiza el progreso de una misión.
-     */
-    private function updateProgress(UserMissionModel $userMission, int $increment, bool $replace = false): bool
-    {
-        $userMission->current_value = $replace
-            ? $increment
-            : $userMission->current_value + $increment;
-
-        $userMission->status_id = StatusModel::IN_PROGRESS;
-
-        if ($userMission->current_value >= $userMission->mission->total_value) {
-            return $this->completeMission($userMission);
+        if (!$user) {
+            return $this->error("Usuario no encontrado");
         }
 
-        return $userMission->save();
-    }
+        // === DAILY ===
+        $dailyMissions = UserDailyMissionModel::query()
+            ->leftJoin('daily_mission', 'user_daily_mission.daily_mission_id', '=', 'daily_mission.id')
+            ->leftJoin('reward', 'daily_mission.reward_id', '=', 'reward.id')
+            ->selectRaw('
+                user_daily_mission.id,
+                user_daily_mission.current_value,
+                daily_mission.description,
+                daily_mission.total_value,
+                reward.id as reward_id,
+                user_daily_mission.status_id
+            ')
+            ->where('user_daily_mission.user_id', $user_id)
+            ->where(function ($query) {
+                $query
+                    ->whereIn('user_daily_mission.status_id', [StatusModel::PENDING, StatusModel::IN_PROGRESS])
+                    ->orWhere(function ($q) {
+                        $q->where('user_daily_mission.status_id', StatusModel::COMPLETED)
+                            ->whereDate('user_daily_mission.completed_at', Carbon::today());
+                    });
+            })
+            ->orderBy('user_daily_mission.daily_mission_id', 'ASC')
+            ->get();
 
-    /**
-     * Completa misión.
-     */
-    private function completeMission(UserMissionModel $userMission): bool
-    {
-        $userMission->status_id = StatusModel::COMPLETED;
-        $userMission->completed_at = Carbon::now();
-        $userMission->current_value = $userMission->mission->total_value;
+        // === WEEKLY ===
+        $weeklyMissions = UserWeeklyMissionModel::query()
+            ->leftJoin('weekly_mission', 'user_weekly_mission.weekly_mission_id', '=', 'weekly_mission.id')
+            ->leftJoin('reward', 'weekly_mission.reward_id', '=', 'reward.id')
+            ->selectRaw('
+                user_weekly_mission.id,
+                user_weekly_mission.current_value,
+                weekly_mission.description,
+                weekly_mission.total_value,
+                reward.id as reward_id,
+                user_weekly_mission.status_id
+            ')
+            ->where('user_weekly_mission.user_id', $user_id)
+            ->where(function ($query) {
+                $query
+                    ->whereIn('user_weekly_mission.status_id', [StatusModel::PENDING, StatusModel::IN_PROGRESS])
+                    ->orWhere(function ($q) {
+                        $q->where('user_weekly_mission.status_id', StatusModel::COMPLETED)
+                            ->whereBetween('user_weekly_mission.completed_at', [
+                                Carbon::now()->startOfWeek(),
+                                Carbon::now()->endOfWeek(),
+                            ]);
+                    });
+            })
+            ->orderBy('user_weekly_mission.weekly_mission_id', 'ASC')
+            ->get();
 
-        return $userMission->save();
+        // === MONTHLY ===
+        $monthlyMissions = UserMonthlyMissionModel::query()
+            ->leftJoin('monthly_mission', 'user_monthly_mission.monthly_mission_id', '=', 'monthly_mission.id')
+            ->leftJoin('reward', 'monthly_mission.reward_id', '=', 'reward.id')
+            ->selectRaw('
+                user_monthly_mission.id,
+                user_monthly_mission.current_value,
+                monthly_mission.description,
+                monthly_mission.total_value,
+                reward.id as reward_id,
+                user_monthly_mission.status_id
+            ')
+            ->where('user_monthly_mission.user_id', $user_id)
+            ->where(function ($query) {
+                $query
+                    ->whereIn('user_monthly_mission.status_id', [StatusModel::PENDING, StatusModel::IN_PROGRESS])
+                    ->orWhere(function ($q) {
+                        $q->where('user_monthly_mission.status_id', StatusModel::COMPLETED)
+                            ->whereBetween('user_monthly_mission.completed_at', [
+                                Carbon::now()->startOfMonth(),
+                                Carbon::now()->endOfMonth(),
+                            ]);
+                    });
+            })
+            ->orderBy('user_monthly_mission.monthly_mission_id', 'ASC')
+            ->get();
+
+        return [
+            'dailyMissions' => $dailyMissions,
+            'weeklyMissions' => $weeklyMissions,
+            'monthlyMissions' => $monthlyMissions,
+        ];
     }
 }

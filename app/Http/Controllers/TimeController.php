@@ -75,4 +75,26 @@ class TimeController extends Controller
             $this->formatTimeLeft($now, $endOfMonthMidnight)
         );
     }
+
+    public function getCurrentMonth()
+    {
+        return $this->ok("Mes actual", Carbon::now('America/Lima')->month);
+    }
+
+    public function getTimeLeftList()
+    {
+        $now = Carbon::now('America/Lima');
+        $nextMidnight = $now->copy()->addDay()->startOfDay();
+        $nextSundayAt20 = $now->copy()->next(Carbon::SUNDAY)->setTime(20, 0, 0);
+        $endOfMonthMidnight = $now->copy()->endOfMonth()->addDay()->startOfDay();
+
+        $response = [
+
+            'timeLeftUntilNextDay' => $this->formatTimeLeft($now, $nextMidnight),
+            'timeLeftUntilNextWeek' => $this->formatTimeLeft($now, $nextSundayAt20),
+            'timeLeftUntilNextMonth' => $this->formatTimeLeft($now, $endOfMonthMidnight),
+        ];
+
+        return $this->ok("Listado de tiempo restante", $response);
+    }
 }

@@ -11,18 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_mission', function (Blueprint $table) {
+        Schema::create('user_weekly_mission', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
             $table->integer('current_value')->default(0);
             $table->timestamp('completed_at')->nullable();
-            $table->unsignedBigInteger('mission_id');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('weekly_mission_id');
             $table->unsignedBigInteger('status_id');
 
             $table->foreign('user_id')->references('id')->on('user')->onDelete('cascade');
-            $table->foreign('mission_id')->references('id')->on('mission')->onDelete('cascade');
+            $table->foreign('weekly_mission_id')->references('id')->on('weekly_mission')->onDelete('cascade');
             $table->foreign('status_id')->references('id')->on('status')->onDelete('cascade');
-
             $table->timestamps();
         });
     }
@@ -32,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('user_mission');
+        Schema::dropIfExists('user_weekly_mission');
     }
 };

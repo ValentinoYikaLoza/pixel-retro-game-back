@@ -14,12 +14,17 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(CountrySeeder::class);
         $this->call(DivisionSeeder::class);
-        $this->call(FrequencySeeder::class);
         $this->call(GameSeeder::class);
         $this->call(RewardSeeder::class);
         $this->call(StatusSeeder::class);
         $this->call(MissionTypeSeeder::class);
         $this->call(UserSeeder::class);
+        $this->call(DailyMissionSeeder::class);
+        $this->call(WeeklyMissionSeeder::class);
+        $this->call(MonthlyMissionSeeder::class);
+        $this->call(UserDailyMissionSeeder::class);
+        $this->call(UserWeeklyMissionSeeder::class);
+        $this->call(UserMonthlyMissionSeeder::class);
         // $this->call(MissionSeeder::class);
     }
 }

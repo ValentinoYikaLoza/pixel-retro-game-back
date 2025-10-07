@@ -9,8 +9,7 @@ class MissionTypeModel extends Model
 {
     const POINTS = 1;
     const MATCHES = 2;
-    const STREAK = 3;
-    const EXACT = 5;
+    const EXACT = 3;
 
     public $timestamps = false;
 
