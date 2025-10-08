@@ -25,6 +25,5 @@ class DatabaseSeeder extends Seeder
         $this->call(UserDailyMissionSeeder::class);
         $this->call(UserWeeklyMissionSeeder::class);
         $this->call(UserMonthlyMissionSeeder::class);
-        // $this->call(MissionSeeder::class);
     }
 }

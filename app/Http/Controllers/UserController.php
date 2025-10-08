@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserStatsUpdated;
 use App\Models\UserModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -80,5 +82,89 @@ class UserController extends Controller
         }
 
         return $this->ok("Usuario", $user);
+    }
+
+    public function updateCoins(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $user_id = $request->user_id;
+            $coins = $request->coins;
+
+            // obtener el id de la division del usuario
+            $user = UserModel::find($user_id);
+
+            if (!$user) {
+                return $this->error('Usuario no encontrado');
+            }
+
+            $user->coins += $coins;
+            $user->save();
+
+            broadcast(new UserStatsUpdated($user))->toOthers();
+
+            DB::commit();
+
+            return $this->ok('Coins actualizados');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+            DB::rollBack();
+        }
+    }
+
+    public function updateLives(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $user_id = $request->user_id;
+            $lives = $request->lives;
+
+            // obtener el id de la division del usuario
+            $user = UserModel::find($user_id);
+
+            if (!$user) {
+                return $this->error('Usuario no encontrado');
+            }
+
+            $user->lives += $lives;
+            $user->save();
+
+            broadcast(new UserStatsUpdated($user))->toOthers();
+
+            DB::commit();
+
+            return $this->ok('Lives actualizados');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+            DB::rollBack();
+        }
+    }
+
+    public function updateStreak(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $user_id = $request->user_id;
+            $streak = $request->streak;
+
+            // obtener el id de la division del usuario
+            $user = UserModel::find($user_id);
+
+            if (!$user) {
+                return $this->error('Usuario no encontrado');
+            }
+
+            $user->streak += $streak;
+            $user->save();
+
+            broadcast(new UserStatsUpdated($user))->toOthers();
+
+            DB::commit();
+
+            return $this->ok('Streak actualizados');
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage());
+            DB::rollBack();
+        }
     }
 }

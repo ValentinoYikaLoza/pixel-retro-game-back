@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserMissionsUpdated;
 use App\Models\StatusModel;
 use App\Models\UserModel;
 use App\Models\UserDailyMissionModel;
@@ -9,6 +10,7 @@ use App\Models\UserWeeklyMissionModel;
 use App\Models\UserMonthlyMissionModel;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MissionController extends Controller
 {
@@ -48,7 +50,7 @@ class MissionController extends Controller
                             ->whereDate('user_daily_mission.completed_at', Carbon::today());
                     });
             })
-            ->orderBy('user_daily_mission.daily_mission_id', 'ASC')
+            ->orderBy('user_daily_mission.id', 'ASC')
             ->get();
 
         // === WEEKLY ===
@@ -75,7 +77,7 @@ class MissionController extends Controller
                             ]);
                     });
             })
-            ->orderBy('user_weekly_mission.weekly_mission_id', 'ASC')
+            ->orderBy('user_weekly_mission.id', 'ASC')
             ->get();
 
         // === MONTHLY ===
@@ -102,7 +104,7 @@ class MissionController extends Controller
                             ]);
                     });
             })
-            ->orderBy('user_monthly_mission.monthly_mission_id', 'ASC')
+            ->orderBy('user_monthly_mission.id', 'ASC')
             ->get();
 
         return [
@@ -110,5 +112,61 @@ class MissionController extends Controller
             'weeklyMissions' => $weeklyMissions,
             'monthlyMissions' => $monthlyMissions,
         ];
+    }
+
+    public function updateProgress(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $user_id = $request->user_id;
+            $mission_type = $request->mission_type; // 'daily', 'weekly' o 'monthly'
+            $mission_id = $request->mission_id;
+            $progress = $request->progress;
+
+            $user = UserModel::find($user_id);
+            if (!$user) {
+                return $this->error('Usuario no encontrado');
+            }
+
+            switch ($mission_type) {
+                case 'daily':
+                    $mission = UserDailyMissionModel::where('user_id', $user_id)
+                        ->where('daily_mission_id', $mission_id)
+                        ->first();
+                    break;
+
+                case 'weekly':
+                    $mission = UserWeeklyMissionModel::where('user_id', $user_id)
+                        ->where('weekly_mission_id', $mission_id)
+                        ->first();
+                    break;
+
+                case 'monthly':
+                    $mission = UserMonthlyMissionModel::where('user_id', $user_id)
+                        ->where('monthly_mission_id', $mission_id)
+                        ->first();
+                    break;
+            }
+
+            if (!$mission) {
+                return $this->error('Misión no encontrada');
+            }
+
+            // Actualizar progreso
+            $mission->current_value += $progress;
+            $mission->save();
+
+            // Obtener el listado actualizado
+            $missions = $this->listBase($request);
+
+            // Emitir evento de actualización de misiones
+            broadcast(new UserMissionsUpdated($user_id, $missions))->toOthers();
+
+            DB::commit();
+            return $this->ok('Progreso de misión actualizado', $missions);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->error($e->getMessage());
+        }
     }
 }

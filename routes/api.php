@@ -23,6 +23,7 @@ Route::middleware('api')->group(function () {
         function () {
             Route::post('listUsers', 'list');
             Route::post('getUser', 'getUser');
+            Route::post('updateCoins', 'updateCoins');
         }
     );
 
@@ -46,6 +47,7 @@ Route::middleware('api')->group(function () {
     Route::controller(MissionController::class)->group(
         function () {
             Route::post('listMissions', 'list');
+            Route::post('updateProgress', 'updateProgress');
         }
     );
 });
