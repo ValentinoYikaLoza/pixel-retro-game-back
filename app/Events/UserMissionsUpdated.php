@@ -27,7 +27,7 @@ class UserMissionsUpdated implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        return new Channel('user.' . $this->userId);
+        return new Channel('user.missions.' . $this->userId);
     }
 
     public function broadcastAs()

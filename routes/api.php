@@ -24,6 +24,8 @@ Route::middleware('api')->group(function () {
             Route::post('listUsers', 'list');
             Route::post('getUser', 'getUser');
             Route::post('updateCoins', 'updateCoins');
+            Route::post('updateLives', 'updateLives');
+            Route::post('updateStreak', 'updateStreak');
         }
     );
 

@@ -27,7 +27,7 @@ class UserStatsUpdated implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        return new Channel('user.' . $this->user['id']);
+        return new Channel('user.stats.' . $this->user['id']);
     }
 
     public function broadcastAs()

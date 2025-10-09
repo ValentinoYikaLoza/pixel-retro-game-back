@@ -16,8 +16,8 @@ class MissionController extends Controller
 {
     public function list(Request $request)
     {
-        $missions = $this->listBase($request);
-        return $this->ok("Listado de misiones", $missions);
+        $this->listBase($request);
+        return $this->ok("Listado de misiones");
     }
 
     public function listBase(Request $request)
@@ -107,11 +107,16 @@ class MissionController extends Controller
             ->orderBy('user_monthly_mission.id', 'ASC')
             ->get();
 
-        return [
-            'dailyMissions' => $dailyMissions,
-            'weeklyMissions' => $weeklyMissions,
-            'monthlyMissions' => $monthlyMissions,
+        $response = [
+            'dailyMissions' => $dailyMissions ?? [],
+            'weeklyMissions' => $weeklyMissions ?? [],
+            'monthlyMissions' => $monthlyMissions ?? [],
         ];
+
+        // Emitir evento de actualización de misiones
+        broadcast(new UserMissionsUpdated($user_id, $response))->toOthers();
+
+        return $response;
     }
 
     public function updateProgress(Request $request)
@@ -163,7 +168,7 @@ class MissionController extends Controller
             broadcast(new UserMissionsUpdated($user_id, $missions))->toOthers();
 
             DB::commit();
-            return $this->ok('Progreso de misión actualizado', $missions);
+            return $this->ok('Progreso de misión actualizado');
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->error($e->getMessage());

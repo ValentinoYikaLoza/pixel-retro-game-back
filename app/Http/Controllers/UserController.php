@@ -81,7 +81,9 @@ class UserController extends Controller
             return $this->error('Usuario no encontrado');
         }
 
-        return $this->ok("Usuario", $user);
+        broadcast(new UserStatsUpdated($user))->toOthers();
+
+        return $this->ok("Usuario");
     }
 
     public function updateCoins(Request $request)

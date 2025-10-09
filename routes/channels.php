@@ -13,6 +13,12 @@ use Illuminate\Support\Facades\Broadcast;
 |
 */
 
-Broadcast::channel('user.{id}', function ($user, $id) {
+// Canal para actualizaciones de misiones de usuario
+Broadcast::channel('user.missions.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
+
+// Canal para actualizaciones de estadísticas de usuario
+Broadcast::channel('user.stats.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
