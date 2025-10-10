@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserStatsUpdated implements ShouldBroadcast
+class StatsUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -32,7 +32,7 @@ class UserStatsUpdated implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'UserStatsUpdated';
+        return 'StatsUpdated';
     }
 
     public function broadcastWith()

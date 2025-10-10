@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\UserMissionsUpdated;
+use App\Events\MissionsUpdated;
 use App\Models\StatusModel;
 use App\Models\UserModel;
 use App\Models\UserDailyMissionModel;
@@ -114,7 +114,7 @@ class MissionController extends Controller
         ];
 
         // Emitir evento de actualización de misiones
-        broadcast(new UserMissionsUpdated($user_id, $response))->toOthers();
+        broadcast(new MissionsUpdated($user_id, $response))->toOthers();
 
         return $response;
     }
@@ -165,7 +165,7 @@ class MissionController extends Controller
             $missions = $this->listBase($request);
 
             // Emitir evento de actualización de misiones
-            broadcast(new UserMissionsUpdated($user_id, $missions))->toOthers();
+            broadcast(new MissionsUpdated($user_id, $missions))->toOthers();
 
             DB::commit();
             return $this->ok('Progreso de misión actualizado');

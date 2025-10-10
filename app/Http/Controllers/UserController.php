@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\UserStatsUpdated;
+use App\Events\StatsUpdated;
+use App\Events\UsersUpdated;
 use App\Models\UserModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,9 +12,9 @@ class UserController extends Controller
 {
     public function list(Request $request)
     {
-        $users = $this->listBase($request);
+        $this->listBase($request);
 
-        return $this->ok("Listado de usuarios", $users);
+        return $this->ok("Listado de usuarios");
     }
 
     public function listBase(Request $request)
@@ -64,6 +65,12 @@ class UserController extends Controller
             }
         }
 
+        $response = ['users' => $users->values() ?? []];
+        // resetear índices
+
+        // Emitir evento de actualización de usuarios
+        broadcast(new UsersUpdated($user_id, $response))->toOthers();
+
         return $users->values(); // resetear índices
     }
 
@@ -81,7 +88,7 @@ class UserController extends Controller
             return $this->error('Usuario no encontrado');
         }
 
-        broadcast(new UserStatsUpdated($user))->toOthers();
+        broadcast(new StatsUpdated($user))->toOthers();
 
         return $this->ok("Usuario");
     }
@@ -103,7 +110,7 @@ class UserController extends Controller
             $user->coins += $coins;
             $user->save();
 
-            broadcast(new UserStatsUpdated($user))->toOthers();
+            broadcast(new StatsUpdated($user))->toOthers();
 
             DB::commit();
 
@@ -131,7 +138,7 @@ class UserController extends Controller
             $user->lives += $lives;
             $user->save();
 
-            broadcast(new UserStatsUpdated($user))->toOthers();
+            broadcast(new StatsUpdated($user))->toOthers();
 
             DB::commit();
 
@@ -159,7 +166,7 @@ class UserController extends Controller
             $user->streak += $streak;
             $user->save();
 
-            broadcast(new UserStatsUpdated($user))->toOthers();
+            broadcast(new StatsUpdated($user))->toOthers();
 
             DB::commit();
 

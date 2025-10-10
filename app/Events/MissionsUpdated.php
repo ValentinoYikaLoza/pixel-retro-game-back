@@ -2,43 +2,43 @@
 
 namespace App\Events;
 
-use App\Models\DivisionModel;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class DivisionUpdated implements ShouldBroadcast
+class MissionsUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $userId;
-    public $division;
+    public $missions;
 
-    public function __construct(int $userId, DivisionModel $division)
+    public function __construct(int $userId, array $missions)
     {
         $this->userId = $userId;
-        $this->division = [
-            'id' => $division->id,
-            'name' => $division->name,
+        $this->missions = [
+            'dailyMissions' => $missions['dailyMissions'] ?? [],
+            'weeklyMissions' => $missions['weeklyMissions'] ?? [],
+            'monthlyMissions' => $missions['monthlyMissions'] ?? [],
         ];
     }
 
     public function broadcastOn()
     {
-        return new Channel('user.divisions.' . $this->userId);
+        return new Channel('user.missions.' . $this->userId);
     }
 
     public function broadcastAs()
     {
-        return 'DivisionsUpdated';
+        return 'MissionsUpdated';
     }
 
     public function broadcastWith()
     {
         return [
-            'division' => $this->division,
+            'missions' => $this->missions,
         ];
     }
 }

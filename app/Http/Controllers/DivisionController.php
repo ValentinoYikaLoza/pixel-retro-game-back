@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\DivisionUpdated;
 use App\Models\DivisionModel;
 use App\Models\UserModel;
 use Illuminate\Http\Request;
@@ -40,6 +41,8 @@ class DivisionController extends Controller
             return $this->error("Division no encontrada");
         }
 
-        return $this->ok("Division actual", $division);
+        broadcast(new DivisionUpdated($user_id, $division))->toOthers();
+
+        return $this->ok("Division actual");
     }
 }
