@@ -32,17 +32,12 @@ Route::middleware('api')->group(function () {
     Route::controller(DivisionController::class)->group(
         function () {
             Route::get('listDivisions', 'list');
-            Route::post('getCurrentDivision', 'getCurrentDivision');
         }
     );
 
     Route::controller(TimeController::class)->group(
         function () {
-            Route::get('getTimeLeftTillNextDay', 'getTimeLeftTillNextMidnight');
-            Route::get('getTimeLeftTillNextWeek', 'getTimeLeftTillNextSunday20');
-            Route::get('getTimeLeftTillNextMonth', 'getTimeLeftTillNextMonthEndMidnight');
-            Route::get('getCurrentMonth', 'getCurrentMonth');
-            Route::get('getTimeLeft', 'getTimeLeftList');
+            Route::get('getTime', 'getTime');
         }
     );
 

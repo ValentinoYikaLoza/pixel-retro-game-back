@@ -21,7 +21,8 @@ class StatsUpdated implements ShouldBroadcast
             'id' => $user->id,
             'coins' => $user->coins,
             'lives' => $user->lives,
-            'streak' => $user->streak
+            'streak' => $user->streak,
+            'division_id' => $user->division_id,
         ];
     }
 

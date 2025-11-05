@@ -7,6 +7,7 @@ use App\Events\UsersUpdated;
 use App\Models\UserModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpParser\Node\Expr\AssignOp\Div;
 
 class UserController extends Controller
 {
@@ -80,7 +81,7 @@ class UserController extends Controller
         $user_id = $request->user_id;
 
         $user = UserModel::query()
-            ->select('user.id', 'user.name', 'user.coins', 'user.lives', 'user.score', 'user.streak')
+            ->select('user.id', 'user.name', 'user.coins', 'user.lives', 'user.score', 'user.streak', 'user.division_id')
             ->where('user.id', $user_id)
             ->first();
 
@@ -100,7 +101,6 @@ class UserController extends Controller
             $user_id = $request->user_id;
             $coins = $request->coins;
 
-            // obtener el id de la division del usuario
             $user = UserModel::find($user_id);
 
             if (!$user) {

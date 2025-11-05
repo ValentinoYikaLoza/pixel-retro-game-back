@@ -23,17 +23,7 @@ Broadcast::channel('user.missions.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-// Canal para actualizaciones de divisiones
-Broadcast::channel('user.divisions.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-});
-
 // Canal para actualizaciones de usuarios
 Broadcast::channel('user.users.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-});
-
-// Canal público o privado para tiempos del sistema
-Broadcast::channel('system.time.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
