@@ -31,5 +31,14 @@ interface MissionRepositoryInterface
      */
     public function advanceableForGame(int $userId, int $gameId): Collection;
 
+    /**
+     * Rollover perezoso: reasigna y reinicia las misiones del usuario cuyo
+     * período guardado ya no es el actual. `$keys` = ['daily'=>'Y-m-d',
+     * 'weekly'=>'o-W', 'monthly'=>'Y-m'] en UTC.
+     *
+     * @param  array{daily: string, weekly: string, monthly: string}  $keys
+     */
+    public function rolloverUserMissions(int $userId, array $keys): void;
+
     public function save(Model $mission): void;
 }

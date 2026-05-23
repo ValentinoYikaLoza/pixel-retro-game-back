@@ -16,6 +16,7 @@ class UserMonthlyMissionModel extends Model
 
     protected $fillable = [
         'current_value',
+        'period_key',
         'completed_at',
     ];
 

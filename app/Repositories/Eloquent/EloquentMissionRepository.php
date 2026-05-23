@@ -2,10 +2,13 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Models\DailyMissionModel;
+use App\Models\MonthlyMissionModel;
 use App\Models\StatusModel;
 use App\Models\UserDailyMissionModel;
 use App\Models\UserMonthlyMissionModel;
 use App\Models\UserWeeklyMissionModel;
+use App\Models\WeeklyMissionModel;
 use App\Repositories\Contracts\MissionRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -156,6 +159,75 @@ class EloquentMissionRepository implements MissionRepositoryInterface
             ]);
 
         return $daily->concat($weekly)->concat($monthly)->values();
+    }
+
+    public function rolloverUserMissions(int $userId, array $keys): void
+    {
+        $this->rolloverType(
+            UserDailyMissionModel::class,
+            'daily_mission_id',
+            DailyMissionModel::class,
+            $userId,
+            $keys['daily'],
+        );
+        $this->rolloverType(
+            UserWeeklyMissionModel::class,
+            'weekly_mission_id',
+            WeeklyMissionModel::class,
+            $userId,
+            $keys['weekly'],
+        );
+        $this->rolloverType(
+            UserMonthlyMissionModel::class,
+            'monthly_mission_id',
+            MonthlyMissionModel::class,
+            $userId,
+            $keys['monthly'],
+        );
+    }
+
+    /**
+     * Para un tipo de misión: las filas con período guardado distinto al actual
+     * se reasignan (nueva misión base aleatoria) y reinician; las que tienen
+     * período nulo (sembradas) solo se inicializan con la clave actual.
+     *
+     * @param  class-string<Model>  $userModel
+     * @param  class-string<Model>  $baseModel
+     */
+    private function rolloverType(
+        string $userModel,
+        string $fk,
+        string $baseModel,
+        int $userId,
+        string $currentKey,
+    ): void {
+        $rows = $userModel::where('user_id', $userId)->get();
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        $pool = null; // ids de misiones base; se cargan solo si hace falta
+        foreach ($rows as $row) {
+            if ($row->period_key === $currentKey) {
+                continue;
+            }
+            if ($row->period_key === null) {
+                $row->period_key = $currentKey; // init sin reiniciar progreso
+                $row->save();
+                continue;
+            }
+
+            // Período vencido: nueva misión + progreso reiniciado.
+            $pool ??= $baseModel::pluck('id')->all();
+            if (!empty($pool)) {
+                $row->{$fk} = $pool[array_rand($pool)];
+            }
+            $row->current_value = 0;
+            $row->status_id = StatusModel::PENDING;
+            $row->completed_at = null;
+            $row->period_key = $currentKey;
+            $row->save();
+        }
     }
 
     public function save(Model $mission): void

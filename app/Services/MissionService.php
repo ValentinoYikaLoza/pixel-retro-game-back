@@ -8,6 +8,7 @@ use App\Models\MissionTypeModel;
 use App\Models\StatusModel;
 use App\Repositories\Contracts\MissionRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class MissionService
@@ -25,6 +26,7 @@ class MissionService
     public function listForUser(int $userId): array
     {
         $this->assertUserExists($userId);
+        $this->rollover($userId);
 
         $missions = $this->gather($userId);
         $this->broadcastList($userId, $missions);
@@ -40,6 +42,7 @@ class MissionService
     public function updateProgress(int $userId, string $type, int $missionId, int $progress): array
     {
         $this->assertUserExists($userId);
+        $this->rollover($userId);
 
         return DB::transaction(function () use ($userId, $type, $missionId, $progress) {
             $mission = $this->missions->findUserMission($type, $userId, $missionId);
@@ -68,6 +71,7 @@ class MissionService
      */
     public function advanceForGame(int $userId, int $gameId, int $score): void
     {
+        $this->rollover($userId);
         $items = $this->missions->advanceableForGame($userId, $gameId);
 
         $changed = false;
@@ -101,6 +105,20 @@ class MissionService
         if ($changed) {
             $this->broadcastList($userId, $this->gather($userId));
         }
+    }
+
+    /**
+     * Rollover perezoso de las misiones del usuario al período actual (UTC):
+     * las del período vencido se reasignan y reinician antes de listar/avanzar.
+     */
+    private function rollover(int $userId): void
+    {
+        $now = Carbon::now('UTC');
+        $this->missions->rolloverUserMissions($userId, [
+            'daily' => $now->format('Y-m-d'),
+            'weekly' => $now->format('o-W'),
+            'monthly' => $now->format('Y-m'),
+        ]);
     }
 
     private function assertUserExists(int $userId): void
