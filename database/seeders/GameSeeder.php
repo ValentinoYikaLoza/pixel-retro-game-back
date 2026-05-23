@@ -15,10 +15,10 @@ class GameSeeder extends Seeder
     {
         GameModel::truncate();
         $rows = [
-            ['id' => GameModel::SNAKE, 'name' => 'snake', 'title' => 'Snake'],
-            ['id' => GameModel::TETRIS, 'name' => 'tetris', 'title' => 'Tetris'],
-            ['id' => GameModel::PIXEL_INVADERS, 'name' => 'invaders', 'title' => 'Pixel Invaders'],
-            ['id' => GameModel::PACMAN, 'name' => 'pacman', 'title' => 'Pacman'],
+            ['id' => GameModel::SNAKE, 'name' => 'snake', 'title' => 'Snake', 'enabled' => true],
+            ['id' => GameModel::TETRIS, 'name' => 'tetris', 'title' => 'Tetris', 'enabled' => true],
+            ['id' => GameModel::PIXEL_INVADERS, 'name' => 'invaders', 'title' => 'Pixel Invaders', 'enabled' => true],
+            ['id' => GameModel::PACMAN, 'name' => 'pacman', 'title' => 'Pacman', 'enabled' => true],
         ];
 
         foreach ($rows as $row) {

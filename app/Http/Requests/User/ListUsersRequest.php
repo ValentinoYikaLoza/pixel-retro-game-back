@@ -4,7 +4,7 @@ namespace App\Http\Requests\User;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateLivesRequest extends FormRequest
+class ListUsersRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,7 +15,8 @@ class UpdateLivesRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'integer'],
-            'lives' => ['required', 'integer'],
+            // El frontend acota el ranking; el backend devuelve el top de la división.
+            'limit' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

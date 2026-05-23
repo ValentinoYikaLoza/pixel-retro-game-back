@@ -71,6 +71,12 @@ class UserService
         return $this->applyStat($id, fn (UserModel $u) => $u->streak += $streak);
     }
 
+    /** La EXP del juego se almacena en `score` (es lo que muestra el ranking). */
+    public function addExp(int $id, int $exp): UserModel
+    {
+        return $this->applyStat($id, fn (UserModel $u) => $u->score += $exp);
+    }
+
     /**
      * Aplica una mutación atómica sobre un stat del usuario y emite el evento.
      */

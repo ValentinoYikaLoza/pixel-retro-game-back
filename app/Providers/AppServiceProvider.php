@@ -3,10 +3,14 @@
 namespace App\Providers;
 
 use App\Repositories\Contracts\DivisionRepositoryInterface;
+use App\Repositories\Contracts\GameRepositoryInterface;
 use App\Repositories\Contracts\MissionRepositoryInterface;
+use App\Repositories\Contracts\ShopRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EloquentDivisionRepository;
+use App\Repositories\Eloquent\EloquentGameRepository;
 use App\Repositories\Eloquent\EloquentMissionRepository;
+use App\Repositories\Eloquent\EloquentShopRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
         UserRepositoryInterface::class => EloquentUserRepository::class,
         DivisionRepositoryInterface::class => EloquentDivisionRepository::class,
         MissionRepositoryInterface::class => EloquentMissionRepository::class,
+        GameRepositoryInterface::class => EloquentGameRepository::class,
+        ShopRepositoryInterface::class => EloquentShopRepository::class,
     ];
 
     /**

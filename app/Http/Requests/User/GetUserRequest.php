@@ -4,7 +4,7 @@ namespace App\Http\Requests\User;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateLivesRequest extends FormRequest
+class GetUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,7 +15,6 @@ class UpdateLivesRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'integer'],
-            'lives' => ['required', 'integer'],
         ];
     }
 }

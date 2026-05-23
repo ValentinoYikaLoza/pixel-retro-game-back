@@ -5,33 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class GameModel extends Model
+class AdvertisementModel extends Model
 {
-    const SNAKE = 1;
-    const TETRIS = 2;
-    const PIXEL_INVADERS = 3;
-    const PACMAN = 4;
-
     public $timestamps = false;
 
     use HasFactory;
 
-    protected $table = 'game';
+    protected $table = 'advertisement';
     protected $primaryKey = 'id';
     protected $fillable = [
-        'name',
-        'title',
-        'enabled'
+        'reward',
+        'reward_type',
     ];
 
     protected $casts = [
-        'name' => 'string',
-        'title' => 'string',
-        'enabled' => 'boolean',
+        'reward' => 'integer',
+        'reward_type' => 'string',
     ];
 
     protected $hidden = [
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 }

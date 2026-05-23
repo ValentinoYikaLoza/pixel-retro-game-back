@@ -25,5 +25,8 @@ class DatabaseSeeder extends Seeder
         $this->call(UserDailyMissionSeeder::class);
         $this->call(UserWeeklyMissionSeeder::class);
         $this->call(UserMonthlyMissionSeeder::class);
+        $this->call(AdvertisementSeeder::class);
+        $this->call(CoinShopSeeder::class);
+        $this->call(LiveShopSeeder::class);
     }
 }

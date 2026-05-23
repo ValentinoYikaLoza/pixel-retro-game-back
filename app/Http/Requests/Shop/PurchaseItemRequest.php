@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Requests\Shop;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateLivesRequest extends FormRequest
+class PurchaseItemRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,7 +15,7 @@ class UpdateLivesRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'integer'],
-            'lives' => ['required', 'integer'],
+            'item_id' => ['required', 'integer'],
         ];
     }
 }

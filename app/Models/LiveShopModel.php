@@ -5,33 +5,28 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class GameModel extends Model
+class LiveShopModel extends Model
 {
-    const SNAKE = 1;
-    const TETRIS = 2;
-    const PIXEL_INVADERS = 3;
-    const PACMAN = 4;
-
     public $timestamps = false;
 
     use HasFactory;
 
-    protected $table = 'game';
+    protected $table = 'live_shop';
     protected $primaryKey = 'id';
     protected $fillable = [
-        'name',
-        'title',
-        'enabled'
+        'quantity',
+        'price',
+        'type_id',
     ];
 
     protected $casts = [
-        'name' => 'string',
-        'title' => 'string',
-        'enabled' => 'boolean',
+        'quantity' => 'integer',
+        'price' => 'float',
+        'type_id' => 'integer',
     ];
 
     protected $hidden = [
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 }

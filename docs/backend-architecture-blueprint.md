@@ -221,9 +221,14 @@ Route::middleware('api')->prefix('foo')->controller(FooController::class)->group
 { "success": false, "message": "Foo not found" }
 ```
 - Una sola clave de mensaje: `message` (no mezclar `msg`/`mensaje`).
-- `snake_case` en todas las claves JSON.
-- Lecturas → `GET` (id en la ruta); escrituras → `POST`/`PATCH`.
-- Las escrituras devuelven solo confirmación; no reenviar el modelo completo.
+- `snake_case` en las claves JSON (excepción: claves que el contrato del frontend
+  exige en camelCase, p. ej. `rewardType`, `dailyMissions`).
+- **Rutas dirigidas por el contrato del frontend (RPC)**: el frontend es la fuente
+  de verdad, así que las rutas usan verbos RPC (`/getUser`, `/listDivisions`,
+  `/updateCoins`, `/listMissions`, `/getTime`…). Lecturas globales = `GET`;
+  lecturas/escrituras ligadas a un usuario = `POST` con el id en el body.
+- Las escrituras devuelven solo confirmación; el estado actualizado llega por el
+  evento de broadcast (StatsUpdated / MissionsUpdated / UsersUpdated).
 
 ---
 

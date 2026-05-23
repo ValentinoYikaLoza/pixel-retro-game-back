@@ -14,7 +14,7 @@ class UpdateStreakRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'streak' => ['required', 'integer'],
+            'user_id' => ['required', 'integer'],
         ];
     }
 }
