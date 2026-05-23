@@ -9,25 +9,26 @@ use Illuminate\Database\Seeder;
 /**
  * 10 niveles de Tetris. Reusa game_level: tick_ms = gravedad (ms por caída),
  * walls = bloques de basura iniciales (celdas pre-ocupadas), target_score =
- * puntos para superar el nivel. La dificultad sube con más velocidad, más
- * filas de basura y objetivo más alto. Tablero estándar 10x20.
+ * LÍNEAS para superar el nivel (Tetris se supera por líneas, no por puntos). La
+ * dificultad sube con más velocidad, más filas de basura y más líneas a limpiar.
+ * Tablero estándar 10x20.
  */
 class TetrisLevelSeeder extends Seeder
 {
     public function run(): void
     {
-        // [level, gravity_ms, garbage_rows, target]
+        // [level, gravity_ms, garbage_rows, target_lines]
         $defs = [
-            [1, 800, 0, 300],
-            [2, 720, 0, 600],
-            [3, 640, 1, 900],
-            [4, 560, 1, 1300],
-            [5, 480, 2, 1800],
-            [6, 420, 2, 2400],
-            [7, 360, 3, 3100],
-            [8, 300, 4, 3900],
-            [9, 240, 5, 4800],
-            [10, 190, 6, 6000],
+            [1, 800, 0, 5],
+            [2, 720, 0, 8],
+            [3, 640, 1, 12],
+            [4, 560, 1, 16],
+            [5, 480, 2, 20],
+            [6, 420, 2, 25],
+            [7, 360, 3, 30],
+            [8, 300, 4, 36],
+            [9, 240, 5, 42],
+            [10, 190, 6, 50],
         ];
 
         $w = 10;

@@ -248,16 +248,21 @@ class GameSessionService
                 'users' => $this->users->ranking($user->division_id, $userId),
             ]))->toOthers();
 
-            // Progreso del nivel: mejor puntaje y "superado" si alcanza el
-            // objetivo; al superarlo por primera vez se desbloquea el siguiente.
+            // Progreso del nivel: la meta (target_score) se mide en la unidad del
+            // objetivo de cada juego — Tetris se supera por LÍNEAS (la métrica
+            // secundaria) y los demás por PUNTOS. "Mejor" se guarda en esa misma
+            // unidad para que meta y mejor sean comparables en la UI. Al superar
+            // por primera vez se desbloquea el siguiente nivel.
             $levelCleared = false;
             $unlockedNext = false;
             if ($levelConfig) {
+                $objective = $session->game_id === GameModel::TETRIS ? $foodEaten : $score;
+
                 $progress = $this->levels->firstOrNewProgress($userId, $levelConfig->id);
                 $wasCleared = $progress->cleared_at !== null;
-                $progress->best_score = max((int) $progress->best_score, $score);
+                $progress->best_score = max((int) $progress->best_score, $objective);
 
-                if ($score >= $levelConfig->target_score) {
+                if ($objective >= $levelConfig->target_score) {
                     $levelCleared = true;
                     if (!$wasCleared) {
                         $progress->cleared_at = now();
