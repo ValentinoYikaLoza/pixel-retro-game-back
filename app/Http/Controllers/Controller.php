@@ -21,7 +21,8 @@ class Controller extends BaseController
             $array['message'] = $message;
         }
 
-        if ($data) {
+        // !is_null para que las listas/colecciones vacías sigan devolviendo data: [].
+        if (!is_null($data)) {
             $array['data'] = $data;
         }
         return response()->json($array, 200);

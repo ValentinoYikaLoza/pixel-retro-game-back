@@ -2,47 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\DivisionUpdated;
-use App\Models\DivisionModel;
-use App\Models\UserModel;
-use Illuminate\Http\Request;
+use App\Http\Resources\DivisionResource;
+use App\Services\DivisionService;
 
 class DivisionController extends Controller
 {
-    public function list()
-    {
-        $divisions = $this->listBase();
+    public function __construct(private readonly DivisionService $service) {}
 
-        return $this->ok("Listado de Divisiones", $divisions);
+    public function index()
+    {
+        return $this->ok(
+            'Listado de Divisiones',
+            DivisionResource::collection($this->service->list()),
+        );
     }
 
-    public function listBase()
+    public function current(int $userId)
     {
-        $divisions = DivisionModel::all();
-
-        return $divisions;
-    }
-
-    public function getCurrentDivision(Request $request)
-    {
-        $user_id = $request->user_id;
-
-        $user = UserModel::find($user_id);
-
-        if (!$user) {
-            return $this->error("Usuario no encontrado");
-        }
-
-        $division_id = $user->division_id;
-
-        $division = DivisionModel::find($division_id);
-
-        if (!$division) {
-            return $this->error("Division no encontrada");
-        }
-
-        broadcast(new DivisionUpdated($user_id, $division))->toOthers();
-
-        return $this->ok("Division actual");
+        return $this->ok(
+            'Division actual',
+            new DivisionResource($this->service->currentForUser($userId)),
+        );
     }
 }
