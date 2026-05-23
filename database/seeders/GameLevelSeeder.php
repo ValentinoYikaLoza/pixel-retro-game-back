@@ -45,10 +45,10 @@ class GameLevelSeeder extends Seeder
 
             $walls = $this->finalize($w, $h, $cells);
 
-            // Sella las zonas abiertas inalcanzables (pockets) convirtiéndolas
-            // en pared: evita que aparezca comida en puntos muertos y que el
-            // preview muestre interiores abiertos que no se pueden alcanzar.
-            [$walls, $freeCells] = $this->sealPockets($w, $h, $wrap, $walls);
+            // Hace el nivel solvible: erosiona callejones sin salida (dead-ends)
+            // y sella bolsones inalcanzables. Así no hay trampas de muerte
+            // instantánea ni comida en zonas a las que no se puede llegar.
+            [$walls, $freeCells] = $this->makeSolvable($w, $h, $wrap, $walls);
 
             // El objetivo nunca debe exceder lo que cabe en el área jugable:
             // la serpiente no puede crecer más que las celdas libres, así que un
@@ -71,26 +71,32 @@ class GameLevelSeeder extends Seeder
     }
 
     /**
-     * Convierte en pared toda celda abierta que no sea alcanzable desde el
-     * centro (donde aparece la serpiente). Devuelve [paredes, celdas libres].
+     * Garantiza un nivel solvible: (1) erosiona callejones sin salida hasta que
+     * cada celda abierta tenga >= 2 salidas, y (2) sella como pared toda celda
+     * abierta inalcanzable desde el centro. Devuelve [paredes, celdas libres].
      *
      * @param  array<int, array{0:int,1:int}>  $walls
      * @return array{0: array<int, array{0:int,1:int}>, 1: int}
      */
-    private function sealPockets(int $w, int $h, bool $wrap, array $walls): array
+    private function makeSolvable(int $w, int $h, bool $wrap, array $walls): array
     {
         $blocked = [];
         foreach ($walls as [$x, $y]) {
             $blocked["$x,$y"] = true;
         }
 
-        $reachable = $this->floodFill($w, $h, $wrap, $blocked, intdiv($w, 2), intdiv($h, 2));
+        // 1) Erosiona dead-ends: una celda con <= 1 salida abierta es una trampa
+        //    (la serpiente no podría salir), así que se rellena con pared. Se
+        //    repite hasta estabilizar (consume el túnel entero hasta el cruce).
+        $blocked = $this->erodeDeadEnds($w, $h, $wrap, $blocked);
 
+        // 2) Sella bolsones inalcanzables desde el centro (donde nace la víbora).
+        $reachable = $this->floodFill($w, $h, $wrap, $blocked, intdiv($w, 2), intdiv($h, 2));
         for ($y = 0; $y < $h; $y++) {
             for ($x = 0; $x < $w; $x++) {
                 $k = "$x,$y";
                 if (!isset($blocked[$k]) && !isset($reachable[$k])) {
-                    $blocked[$k] = true; // pocket aislado -> pared
+                    $blocked[$k] = true;
                 }
             }
         }
@@ -102,6 +108,58 @@ class GameLevelSeeder extends Seeder
         }
 
         return [$sealed, count($reachable)];
+    }
+
+    /**
+     * Rellena con pared toda celda abierta que tenga <= 1 vecino abierto
+     * (callejón sin salida), repitiendo hasta que no queden. La zona segura
+     * central se preserva siempre. Recibe y devuelve el mapa de bloqueadas.
+     *
+     * @param  array<string, bool>  $blocked
+     * @return array<string, bool>
+     */
+    private function erodeDeadEnds(int $w, int $h, bool $wrap, array $blocked): array
+    {
+        $cx = intdiv($w, 2);
+        $cy = intdiv($h, 2);
+
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            for ($y = 0; $y < $h; $y++) {
+                for ($x = 0; $x < $w; $x++) {
+                    $k = "$x,$y";
+                    if (isset($blocked[$k])) {
+                        continue;
+                    }
+                    if (abs($x - $cx) <= 2 && abs($y - $cy) <= 2) {
+                        continue; // no tocar la zona segura de spawn
+                    }
+
+                    $open = 0;
+                    foreach ([[1, 0], [-1, 0], [0, 1], [0, -1]] as [$dx, $dy]) {
+                        $nx = $x + $dx;
+                        $ny = $y + $dy;
+                        if ($wrap) {
+                            $nx = ($nx + $w) % $w;
+                            $ny = ($ny + $h) % $h;
+                        } elseif ($nx < 0 || $nx >= $w || $ny < 0 || $ny >= $h) {
+                            continue; // el borde cuenta como bloqueado
+                        }
+                        if (!isset($blocked["$nx,$ny"])) {
+                            $open++;
+                        }
+                    }
+
+                    if ($open <= 1) {
+                        $blocked[$k] = true;
+                        $changed = true;
+                    }
+                }
+            }
+        }
+
+        return $blocked;
     }
 
     /**
