@@ -5,9 +5,10 @@ namespace App\Services;
 use App\Events\StatsUpdated;
 use App\Events\UsersUpdated;
 use App\Exceptions\ApiException;
-use App\Models\GameModel;
+use App\Models\GameLevelModel;
 use App\Models\GameSessionModel;
 use App\Models\UserModel;
+use App\Repositories\Contracts\GameLevelRepositoryInterface;
 use App\Repositories\Contracts\GameRepositoryInterface;
 use App\Repositories\Contracts\GameSessionRepositoryInterface;
 use App\Repositories\Contracts\UserGameStatRepositoryInterface;
@@ -36,16 +37,18 @@ class GameSessionService
         private readonly UserRepositoryInterface $users,
         private readonly GameSessionRepositoryInterface $sessions,
         private readonly UserGameStatRepositoryInterface $stats,
+        private readonly GameLevelRepositoryInterface $levels,
         private readonly MissionService $missions,
     ) {}
 
     /**
-     * Inicia una partida: valida vidas, descuenta el coste y abre la sesión.
-     * Devuelve la config (semilla + dificultad) que el cliente debe usar.
+     * Inicia una partida en un nivel: valida vidas y desbloqueo, descuenta el
+     * coste y abre la sesión. Devuelve la config del nivel (semilla, velocidad,
+     * grid, paredes, wrap y objetivo) que el cliente debe usar.
      *
-     * @return array<string, int>
+     * @return array<string, mixed>
      */
-    public function start(int $userId, string $gameCode): array
+    public function start(int $userId, string $gameCode, int $level = 1): array
     {
         $game = $this->games->findByCode($gameCode);
         if (!$game) {
@@ -55,7 +58,15 @@ class GameSessionService
             throw ApiException::unprocessable('Juego no disponible');
         }
 
-        return DB::transaction(function () use ($userId, $game) {
+        $levelConfig = $this->levels->find($game->id, $level);
+        if (!$levelConfig) {
+            throw ApiException::notFound('Nivel no encontrado');
+        }
+        if (!$this->isLevelUnlocked($userId, $game->id, $level)) {
+            throw ApiException::unprocessable('Nivel bloqueado');
+        }
+
+        return DB::transaction(function () use ($userId, $game, $level, $levelConfig) {
             $user = $this->getUser($userId);
 
             if ($user->lives < $game->lives_cost) {
@@ -70,6 +81,7 @@ class GameSessionService
             $session = $this->sessions->create([
                 'user_id' => $userId,
                 'game_id' => $game->id,
+                'level' => $level,
                 'status' => GameSessionModel::STATUS_IN_PROGRESS,
                 'seed' => $seed,
                 'started_at' => now(),
@@ -77,13 +89,77 @@ class GameSessionService
 
             return [
                 'session_id' => (int) $session->id,
+                'level' => $level,
                 'seed' => $seed,
-                'tick_ms' => (int) $game->tick_ms,
-                'grid_width' => (int) $game->grid_width,
-                'grid_height' => (int) $game->grid_height,
+                'tick_ms' => (int) $levelConfig->tick_ms,
+                'grid_width' => (int) $levelConfig->grid_width,
+                'grid_height' => (int) $levelConfig->grid_height,
+                'wrap_around' => (bool) $levelConfig->wrap_around,
+                'walls' => $levelConfig->walls ?? [],
+                'target_score' => (int) $levelConfig->target_score,
                 'lives_left' => (int) $user->lives,
             ];
         });
+    }
+
+    /**
+     * Niveles del juego con el progreso del usuario: mejor puntaje, superado y
+     * desbloqueado (el nivel 1 siempre, los demás si el anterior está superado).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listLevels(int $userId, string $gameCode): array
+    {
+        $game = $this->games->findByCode($gameCode);
+        if (!$game) {
+            throw ApiException::notFound('Juego no encontrado');
+        }
+
+        $levels = $this->levels->forGame($game->id);
+        // Progreso indexado por game_level_id.
+        $progress = $this->levels->progressForUser($userId, $game->id)
+            ->keyBy('game_level_id');
+
+        $clearedByLevel = [];
+        foreach ($levels as $lvl) {
+            $p = $progress->get($lvl->id);
+            $clearedByLevel[$lvl->level] = $p && $p->cleared_at !== null;
+        }
+
+        return $levels->map(function (GameLevelModel $lvl) use ($progress, $clearedByLevel) {
+            $p = $progress->get($lvl->id);
+
+            return [
+                'level' => (int) $lvl->level,
+                'tick_ms' => (int) $lvl->tick_ms,
+                'grid_width' => (int) $lvl->grid_width,
+                'grid_height' => (int) $lvl->grid_height,
+                'wrap_around' => (bool) $lvl->wrap_around,
+                'walls' => $lvl->walls ?? [],
+                'target_score' => (int) $lvl->target_score,
+                'best_score' => (int) ($p->best_score ?? 0),
+                'cleared' => $p && $p->cleared_at !== null,
+                'unlocked' => $lvl->level === 1
+                    || ($clearedByLevel[$lvl->level - 1] ?? false),
+            ];
+        })->all();
+    }
+
+    /** Un nivel está desbloqueado si es el 1 o el anterior está superado. */
+    private function isLevelUnlocked(int $userId, int $gameId, int $level): bool
+    {
+        if ($level <= 1) {
+            return true;
+        }
+
+        $previous = $this->levels->find($gameId, $level - 1);
+        if (!$previous) {
+            return false;
+        }
+
+        return $this->levels->progressForUser($userId, $gameId)
+            ->first(fn ($p) => $p->game_level_id === $previous->id
+                && $p->cleared_at !== null) !== null;
     }
 
     /**
@@ -116,8 +192,11 @@ class GameSessionService
                 throw ApiException::unprocessable('La sesión no está activa');
             }
 
-            $game = $this->games->findById($session->game_id);
-            $this->assertPlausible($score, $foodEaten, $durationMs, $game);
+            $levelConfig = $this->levels->find($session->game_id, $session->level);
+            $tickMs = $levelConfig
+                ? (int) $levelConfig->tick_ms
+                : (int) (($this->games->findById($session->game_id))->tick_ms ?? 200);
+            $this->assertPlausible($score, $foodEaten, $durationMs, $tickMs);
 
             $exp = $score * self::EXP_PER_POINT;
             $coins = intdiv($score, self::COINS_PER_POINTS);
@@ -151,6 +230,27 @@ class GameSessionService
                 'users' => $this->users->ranking($user->division_id, $userId),
             ]))->toOthers();
 
+            // Progreso del nivel: mejor puntaje y "superado" si alcanza el
+            // objetivo; al superarlo por primera vez se desbloquea el siguiente.
+            $levelCleared = false;
+            $unlockedNext = false;
+            if ($levelConfig) {
+                $progress = $this->levels->firstOrNewProgress($userId, $levelConfig->id);
+                $wasCleared = $progress->cleared_at !== null;
+                $progress->best_score = max((int) $progress->best_score, $score);
+
+                if ($score >= $levelConfig->target_score) {
+                    $levelCleared = true;
+                    if (!$wasCleared) {
+                        $progress->cleared_at = now();
+                        $unlockedNext = $this->levels
+                            ->find($session->game_id, $session->level + 1) !== null;
+                    }
+                }
+
+                $this->levels->saveProgress($progress);
+            }
+
             // Avance de misiones del juego (rebroadcasta MissionsUpdated dentro).
             $this->missions->advanceForGame($userId, $session->game_id, $score);
 
@@ -159,6 +259,8 @@ class GameSessionService
                 'high_score' => (int) $stat->high_score,
                 'exp_gained' => $exp,
                 'coins_gained' => $coins,
+                'level_cleared' => $levelCleared,
+                'unlocked_next' => $unlockedNext,
             ];
         });
     }
@@ -275,13 +377,13 @@ class GameSessionService
      * duración (no más comidas que ticks) y con el rango de puntos por comida.
      * Barato y suficiente; no requiere replay determinista.
      */
-    private function assertPlausible(int $score, int $foodEaten, int $durationMs, ?GameModel $game): void
+    private function assertPlausible(int $score, int $foodEaten, int $durationMs, int $tickMs): void
     {
         if ($score < 0 || $foodEaten < 0 || $durationMs <= 0) {
             throw ApiException::unprocessable('Resultado de partida inválido');
         }
 
-        $tickMs = max(1, (int) ($game->tick_ms ?? 200));
+        $tickMs = max(1, $tickMs);
         $ticks = intdiv($durationMs, $tickMs);
 
         // No se puede comer más veces que ticks transcurridos (+1 de holgura).

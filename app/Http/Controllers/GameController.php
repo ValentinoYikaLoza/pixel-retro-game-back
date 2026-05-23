@@ -6,6 +6,7 @@ use App\Http\Requests\Game\AbandonGameRequest;
 use App\Http\Requests\Game\DoubleGameRewardRequest;
 use App\Http\Requests\Game\FinishGameRequest;
 use App\Http\Requests\Game\GameLeaderboardRequest;
+use App\Http\Requests\Game\ListGameLevelsRequest;
 use App\Http\Requests\Game\StartGameRequest;
 use App\Http\Resources\GameLeaderboardResource;
 use App\Http\Resources\GameResource;
@@ -27,12 +28,24 @@ class GameController extends Controller
         );
     }
 
-    /** Inicia una partida: consume vida y devuelve semilla + config. */
+    /** Niveles del juego con el progreso del usuario (para el selector). */
+    public function listGameLevels(ListGameLevelsRequest $request)
+    {
+        $levels = $this->sessions->listLevels(
+            (int) $request->user_id,
+            (string) $request->game_code,
+        );
+
+        return $this->ok('Niveles del juego', ['levels' => $levels]);
+    }
+
+    /** Inicia una partida en un nivel: consume vida y devuelve semilla + config. */
     public function startGame(StartGameRequest $request)
     {
         $data = $this->sessions->start(
             (int) $request->user_id,
             (string) $request->game_code,
+            (int) ($request->level ?? 1),
         );
 
         return $this->ok('Partida iniciada', $data);

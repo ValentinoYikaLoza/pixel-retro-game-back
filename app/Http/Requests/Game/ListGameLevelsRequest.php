@@ -4,7 +4,7 @@ namespace App\Http\Requests\Game;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StartGameRequest extends FormRequest
+class ListGameLevelsRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,7 +16,6 @@ class StartGameRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer'],
             'game_code' => ['required', 'string'],
-            'level' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

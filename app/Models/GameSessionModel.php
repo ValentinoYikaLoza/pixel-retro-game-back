@@ -19,6 +19,7 @@ class GameSessionModel extends Model
     protected $fillable = [
         'user_id',
         'game_id',
+        'level',
         'status',
         'score',
         'seed',
@@ -34,6 +35,7 @@ class GameSessionModel extends Model
     protected $casts = [
         'user_id' => 'integer',
         'game_id' => 'integer',
+        'level' => 'integer',
         'status' => 'string',
         'score' => 'integer',
         'seed' => 'integer',

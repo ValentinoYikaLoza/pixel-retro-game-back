@@ -28,6 +28,7 @@ Route::middleware('api')->group(function () {
     Route::get('listGames', [GameController::class, 'listGames']);
 
     // Partidas (autoridad del servidor: vidas, score, exp, misiones).
+    Route::post('listGameLevels', [GameController::class, 'listGameLevels']);
     Route::post('startGame', [GameController::class, 'startGame']);
     Route::post('finishGame', [GameController::class, 'finishGame']);
     Route::post('doubleGameReward', [GameController::class, 'doubleGameReward']);

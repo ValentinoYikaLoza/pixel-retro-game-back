@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CountrySeeder::class);
         $this->call(DivisionSeeder::class);
         $this->call(GameSeeder::class);
+        $this->call(GameLevelSeeder::class);
         $this->call(RewardSeeder::class);
         $this->call(StatusSeeder::class);
         $this->call(MissionTypeSeeder::class);
