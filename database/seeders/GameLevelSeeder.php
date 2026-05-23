@@ -20,28 +20,26 @@ class GameLevelSeeder extends Seeder
 
     public function run(): void
     {
-        // [level, w, h, wrap, hbars[count,gap], vbars[count,gap], tick, target]
+        // Obstáculos en forma de pilares (islas): la víbora los rodea, los
+        // canales quedan siempre >= gap de ancho y nunca se forman callejones
+        // ni alcobas. La dificultad sube con bloques más grandes / canales más
+        // angostos, más velocidad y arena más chica.
+        // [level, w, h, wrap, block, gap, tick, target]
         $defs = [
-            [1, 30, 20, true,  null,    null,    240, 8],
-            [2, 30, 20, true,  null,    null,    210, 15],
-            [3, 30, 20, false, null,    null,    190, 25],
-            [4, 30, 20, false, [2, 8],  null,    175, 35],
-            [5, 30, 20, false, [2, 8],  [2, 8],  160, 50],
-            [6, 28, 18, false, [3, 7],  [2, 7],  150, 65],
-            [7, 28, 18, false, [3, 6],  [3, 6],  140, 80],
-            [8, 26, 16, false, [4, 6],  [3, 6],  130, 100],
-            [9, 24, 16, false, [4, 5],  [4, 5],  120, 120],
-            [10, 22, 14, false, [5, 4], [4, 4],  110, 150],
+            [1, 30, 20, true,  0, 0, 240, 8],
+            [2, 30, 20, true,  0, 0, 210, 15],
+            [3, 30, 20, false, 0, 0, 190, 25],
+            [4, 30, 20, false, 2, 4, 175, 35],
+            [5, 30, 20, false, 2, 3, 160, 50],
+            [6, 28, 18, false, 3, 4, 150, 65],
+            [7, 28, 18, false, 3, 3, 140, 80],
+            [8, 26, 16, false, 3, 3, 130, 100],
+            [9, 24, 16, false, 3, 3, 120, 120],
+            [10, 22, 14, false, 4, 3, 110, 150],
         ];
 
-        foreach ($defs as [$level, $w, $h, $wrap, $hbars, $vbars, $tick, $target]) {
-            $cells = [];
-            if ($hbars) {
-                $cells = array_merge($cells, $this->hbars($w, $h, $hbars[0], $hbars[1]));
-            }
-            if ($vbars) {
-                $cells = array_merge($cells, $this->vbars($w, $h, $vbars[0], $vbars[1]));
-            }
+        foreach ($defs as [$level, $w, $h, $wrap, $block, $gap, $tick, $target]) {
+            $cells = $block > 0 ? $this->pillars($w, $h, $block, $gap) : [];
 
             $walls = $this->finalize($w, $h, $cells);
 
@@ -205,32 +203,21 @@ class GameLevelSeeder extends Seeder
         return $reachable;
     }
 
-    /** Barras horizontales equiespaciadas, cada una con un hueco central. */
-    private function hbars(int $w, int $h, int $count, int $gap): array
+    /**
+     * Pilares: bloques de pared `block`×`block` en una retícula, separados por
+     * canales de ancho `gap` entre sí y respecto al borde. Como son islas, la
+     * víbora siempre los rodea: no se generan callejones ni alcobas.
+     */
+    private function pillars(int $w, int $h, int $block, int $gap): array
     {
         $cells = [];
-        for ($i = 1; $i <= $count; $i++) {
-            $row = intdiv($h * $i, $count + 1);
-            $gapStart = intdiv($w - $gap, 2);
-            for ($x = 2; $x < $w - 2; $x++) {
-                if ($x < $gapStart || $x >= $gapStart + $gap) {
-                    $cells[] = [$x, $row];
-                }
-            }
-        }
-        return $cells;
-    }
-
-    /** Barras verticales equiespaciadas, cada una con un hueco central. */
-    private function vbars(int $w, int $h, int $count, int $gap): array
-    {
-        $cells = [];
-        for ($i = 1; $i <= $count; $i++) {
-            $col = intdiv($w * $i, $count + 1);
-            $gapStart = intdiv($h - $gap, 2);
-            for ($y = 2; $y < $h - 2; $y++) {
-                if ($y < $gapStart || $y >= $gapStart + $gap) {
-                    $cells[] = [$col, $y];
+        $step = $block + $gap;
+        for ($by = $gap; $by + $block <= $h - $gap; $by += $step) {
+            for ($bx = $gap; $bx + $block <= $w - $gap; $bx += $step) {
+                for ($dy = 0; $dy < $block; $dy++) {
+                    for ($dx = 0; $dx < $block; $dx++) {
+                        $cells[] = [$bx + $dx, $by + $dy];
+                    }
                 }
             }
         }
