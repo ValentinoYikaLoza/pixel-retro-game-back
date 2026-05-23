@@ -99,18 +99,20 @@ class EloquentMissionRepository implements MissionRepositoryInterface
 
     public function findUserMission(string $type, int $userId, int $missionId): ?Model
     {
+        // $missionId es el id de la fila usuario-misión (lo que el cliente recibe
+        // como MissionEntity.id), no el id de la definición de la misión.
         return match ($type) {
             'daily' => UserDailyMissionModel::query()
                 ->where('user_id', $userId)
-                ->where('daily_mission_id', $missionId)
+                ->where('id', $missionId)
                 ->first(),
             'weekly' => UserWeeklyMissionModel::query()
                 ->where('user_id', $userId)
-                ->where('weekly_mission_id', $missionId)
+                ->where('id', $missionId)
                 ->first(),
             'monthly' => UserMonthlyMissionModel::query()
                 ->where('user_id', $userId)
-                ->where('monthly_mission_id', $missionId)
+                ->where('id', $missionId)
                 ->first(),
             default => null,
         };
