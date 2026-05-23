@@ -202,7 +202,19 @@ class GameSessionService
             $tickMs = $levelConfig
                 ? (int) $levelConfig->tick_ms
                 : (int) (($this->games->findById($session->game_id))->tick_ms ?? 200);
-            $this->assertPlausible($session->game_id, $score, $foodEaten, $durationMs, $tickMs);
+
+            // Duración autoritativa: no se confía ciegamente en el cliente. Si la
+            // duración reportada es inválida o mayor que el tiempo real medido en
+            // el servidor (now - started_at), se usa la del servidor. Evita
+            // inflar la cota anti-trampa y rechazar partidas por relojes movidos.
+            $serverElapsedMs = $session->started_at
+                ? (int) $session->started_at->diffInMilliseconds(now())
+                : $durationMs;
+            $duration = ($durationMs > 0 && $durationMs <= $serverElapsedMs)
+                ? $durationMs
+                : $serverElapsedMs;
+
+            $this->assertPlausible($session->game_id, $score, $foodEaten, $duration, $tickMs);
 
             $exp = $score * self::EXP_PER_POINT;
             $coins = intdiv($score, self::COINS_PER_POINTS);
@@ -210,7 +222,7 @@ class GameSessionService
             $session->status = GameSessionModel::STATUS_FINISHED;
             $session->score = $score;
             $session->food_eaten = $foodEaten;
-            $session->duration_ms = $durationMs;
+            $session->duration_ms = $duration;
             $session->exp_awarded = $exp;
             $session->coins_awarded = $coins;
             $session->ended_at = now();
