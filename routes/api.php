@@ -27,6 +27,13 @@ Route::middleware('api')->group(function () {
     // Juegos disponibles (catálogo).
     Route::get('listGames', [GameController::class, 'listGames']);
 
+    // Partidas (autoridad del servidor: vidas, score, exp, misiones).
+    Route::post('startGame', [GameController::class, 'startGame']);
+    Route::post('finishGame', [GameController::class, 'finishGame']);
+    Route::post('doubleGameReward', [GameController::class, 'doubleGameReward']);
+    Route::post('abandonGame', [GameController::class, 'abandonGame']);
+    Route::post('getGameLeaderboard', [GameController::class, 'getGameLeaderboard']);
+
     // Usuario
     Route::post('getUser', [UserController::class, 'getUser']);
     Route::post('updateCoins', [UserController::class, 'updateCoins']);

@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Events\MissionsUpdated;
 use App\Exceptions\ApiException;
+use App\Models\MissionTypeModel;
+use App\Models\StatusModel;
 use App\Repositories\Contracts\MissionRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +56,51 @@ class MissionService
 
             return $missions;
         });
+    }
+
+    /**
+     * Avanza las misiones del usuario asociadas a un juego tras una partida.
+     * Lo invoca GameSessionService al terminar (el cliente nunca toca esto):
+     *  - POINTS: suma el score de la partida.
+     *  - MATCHES: +1 (una partida jugada).
+     *  - EXACT: completa solo si el score coincide exactamente.
+     * Rebroadcasta MissionsUpdated si hubo cambios.
+     */
+    public function advanceForGame(int $userId, int $gameId, int $score): void
+    {
+        $items = $this->missions->advanceableForGame($userId, $gameId);
+
+        $changed = false;
+        foreach ($items as $item) {
+            $delta = match ($item['mission_type_id']) {
+                MissionTypeModel::POINTS  => $score,
+                MissionTypeModel::MATCHES => 1,
+                MissionTypeModel::EXACT   => $score === $item['total_value'] ? $item['total_value'] : 0,
+                default                   => 0,
+            };
+
+            if ($delta <= 0) {
+                continue;
+            }
+
+            $mission = $item['model'];
+            $mission->current_value += $delta;
+
+            if ($mission->current_value >= $item['total_value']) {
+                $mission->current_value = $item['total_value'];
+                $mission->status_id = StatusModel::COMPLETED;
+                $mission->completed_at = now();
+            } else {
+                $mission->status_id = StatusModel::IN_PROGRESS;
+            }
+
+            $this->missions->save($mission);
+            $changed = true;
+        }
+
+        if ($changed) {
+            $this->broadcastList($userId, $this->gather($userId));
+        }
     }
 
     private function assertUserExists(int $userId): void

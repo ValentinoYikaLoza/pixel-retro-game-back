@@ -22,5 +22,14 @@ interface MissionRepositoryInterface
      */
     public function findUserMission(string $type, int $userId, int $missionId): ?Model;
 
+    /**
+     * Misiones activas (pendientes/en progreso) de un usuario para un juego, con
+     * su definición, listas para avanzar tras una partida. Cada item:
+     * { model: Model usuario-misión, mission_type_id: int, total_value: int }.
+     *
+     * @return Collection<int, array{model: Model, mission_type_id: int, total_value: int}>
+     */
+    public function advanceableForGame(int $userId, int $gameId): Collection;
+
     public function save(Model $mission): void;
 }

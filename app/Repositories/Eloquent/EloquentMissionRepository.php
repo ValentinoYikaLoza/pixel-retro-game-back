@@ -118,6 +118,46 @@ class EloquentMissionRepository implements MissionRepositoryInterface
         };
     }
 
+    public function advanceableForGame(int $userId, int $gameId): Collection
+    {
+        $active = [StatusModel::PENDING, StatusModel::IN_PROGRESS];
+
+        $daily = UserDailyMissionModel::with('dailyMission')
+            ->where('user_id', $userId)
+            ->whereIn('status_id', $active)
+            ->get()
+            ->filter(fn ($m) => $m->dailyMission && (int) $m->dailyMission->game_id === $gameId)
+            ->map(fn ($m) => [
+                'model' => $m,
+                'mission_type_id' => (int) $m->dailyMission->mission_type_id,
+                'total_value' => (int) $m->dailyMission->total_value,
+            ]);
+
+        $weekly = UserWeeklyMissionModel::with('weeklyMission')
+            ->where('user_id', $userId)
+            ->whereIn('status_id', $active)
+            ->get()
+            ->filter(fn ($m) => $m->weeklyMission && (int) $m->weeklyMission->game_id === $gameId)
+            ->map(fn ($m) => [
+                'model' => $m,
+                'mission_type_id' => (int) $m->weeklyMission->mission_type_id,
+                'total_value' => (int) $m->weeklyMission->total_value,
+            ]);
+
+        $monthly = UserMonthlyMissionModel::with('monthlyMission')
+            ->where('user_id', $userId)
+            ->whereIn('status_id', $active)
+            ->get()
+            ->filter(fn ($m) => $m->monthlyMission && (int) $m->monthlyMission->game_id === $gameId)
+            ->map(fn ($m) => [
+                'model' => $m,
+                'mission_type_id' => (int) $m->monthlyMission->mission_type_id,
+                'total_value' => (int) $m->monthlyMission->total_value,
+            ]);
+
+        return $daily->concat($weekly)->concat($monthly)->values();
+    }
+
     public function save(Model $mission): void
     {
         $mission->save();

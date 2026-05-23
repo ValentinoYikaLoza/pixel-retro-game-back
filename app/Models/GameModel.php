@@ -21,13 +21,21 @@ class GameModel extends Model
     protected $fillable = [
         'name',
         'title',
-        'enabled'
+        'enabled',
+        'lives_cost',
+        'tick_ms',
+        'grid_width',
+        'grid_height',
     ];
 
     protected $casts = [
         'name' => 'string',
         'title' => 'string',
         'enabled' => 'boolean',
+        'lives_cost' => 'integer',
+        'tick_ms' => 'integer',
+        'grid_width' => 'integer',
+        'grid_height' => 'integer',
     ];
 
     protected $hidden = [
