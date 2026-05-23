@@ -6,6 +6,7 @@ use App\Events\StatsUpdated;
 use App\Events\UsersUpdated;
 use App\Exceptions\ApiException;
 use App\Models\GameLevelModel;
+use App\Models\GameModel;
 use App\Models\GameSessionModel;
 use App\Models\UserModel;
 use App\Repositories\Contracts\GameLevelRepositoryInterface;
@@ -27,10 +28,15 @@ class GameSessionService
     private const EXP_PER_POINT = 1;
     /** 1 moneda por cada N puntos. */
     private const COINS_PER_POINTS = 10;
-    /** Comida extra vale 5; sirve de cota superior anti-trampa. */
+    /** Comida extra vale 5; sirve de cota superior anti-trampa (Snake). */
     private const MAX_POINTS_PER_FOOD = 5;
     /** Ventana (s) para reembolsar la vida al abandonar (cierre accidental). */
     private const REFUND_GRACE_SECONDS = 5;
+
+    /** Cotas anti-trampa de Tetris (generosas: solo atajan fraude grosero). */
+    private const TETRIS_MAX_LINES_PER_SEC = 5;
+    private const TETRIS_MAX_POINTS_PER_LINE = 2000;
+    private const TETRIS_MAX_DROP_POINTS_PER_SEC = 300;
 
     public function __construct(
         private readonly GameRepositoryInterface $games,
@@ -196,7 +202,7 @@ class GameSessionService
             $tickMs = $levelConfig
                 ? (int) $levelConfig->tick_ms
                 : (int) (($this->games->findById($session->game_id))->tick_ms ?? 200);
-            $this->assertPlausible($score, $foodEaten, $durationMs, $tickMs);
+            $this->assertPlausible($session->game_id, $score, $foodEaten, $durationMs, $tickMs);
 
             $exp = $score * self::EXP_PER_POINT;
             $coins = intdiv($score, self::COINS_PER_POINTS);
@@ -373,25 +379,37 @@ class GameSessionService
     }
 
     /**
-     * Anti-trampa por plausibilidad: el resultado debe ser coherente con la
-     * duración (no más comidas que ticks) y con el rango de puntos por comida.
-     * Barato y suficiente; no requiere replay determinista.
+     * Anti-trampa por plausibilidad, específico por juego. `$metric` es la
+     * telemetría secundaria (comidas en Snake, líneas en Tetris). Barato y
+     * suficiente; solo ataja resultados groseramente imposibles.
      */
-    private function assertPlausible(int $score, int $foodEaten, int $durationMs, int $tickMs): void
+    private function assertPlausible(int $gameId, int $score, int $metric, int $durationMs, int $tickMs): void
     {
-        if ($score < 0 || $foodEaten < 0 || $durationMs <= 0) {
+        if ($score < 0 || $metric < 0 || $durationMs <= 0) {
             throw ApiException::unprocessable('Resultado de partida inválido');
         }
 
-        $tickMs = max(1, $tickMs);
-        $ticks = intdiv($durationMs, $tickMs);
+        if ($gameId === GameModel::SNAKE) {
+            // metric = comidas: no más que ticks, y cada una vale 1..MAX puntos.
+            $ticks = intdiv($durationMs, max(1, $tickMs));
+            if ($metric > $ticks + 1) {
+                throw ApiException::unprocessable('Resultado de partida inválido');
+            }
+            if ($score < $metric || $score > $metric * self::MAX_POINTS_PER_FOOD) {
+                throw ApiException::unprocessable('Resultado de partida inválido');
+            }
+            return;
+        }
 
-        // No se puede comer más veces que ticks transcurridos (+1 de holgura).
-        if ($foodEaten > $ticks + 1) {
+        // Tetris (y demás por defecto): metric = líneas. Cotas por tiempo.
+        $seconds = $durationMs / 1000;
+        $maxLines = (int) ($seconds * self::TETRIS_MAX_LINES_PER_SEC) + 4;
+        if ($metric > $maxLines) {
             throw ApiException::unprocessable('Resultado de partida inválido');
         }
-        // Cada comida vale entre 1 y MAX_POINTS_PER_FOOD puntos.
-        if ($score < $foodEaten || $score > $foodEaten * self::MAX_POINTS_PER_FOOD) {
+        $maxScore = $metric * self::TETRIS_MAX_POINTS_PER_LINE
+            + (int) ($seconds * self::TETRIS_MAX_DROP_POINTS_PER_SEC) + 500;
+        if ($score > $maxScore) {
             throw ApiException::unprocessable('Resultado de partida inválido');
         }
     }
