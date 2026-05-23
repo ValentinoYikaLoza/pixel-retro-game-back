@@ -22,20 +22,22 @@ class GameLevelSeeder extends Seeder
     {
         // Obstáculos en forma de pilares (islas): la víbora los rodea, los
         // canales quedan siempre >= gap de ancho y nunca se forman callejones
-        // ni alcobas. La dificultad sube con bloques más grandes / canales más
-        // angostos, más velocidad y arena más chica.
+        // ni alcobas. La dificultad sube de forma proporcional: más cobertura
+        // de paredes (bloques más grandes / canales más angostos), más
+        // velocidad y objetivo más alto. El grid se mantiene constante para que
+        // el total de paredes refleje la complejidad del nivel.
         // [level, w, h, wrap, block, gap, tick, target]
         $defs = [
             [1, 30, 20, true,  0, 0, 240, 8],
             [2, 30, 20, true,  0, 0, 210, 15],
             [3, 30, 20, false, 0, 0, 190, 25],
             [4, 30, 20, false, 2, 4, 175, 35],
-            [5, 30, 20, false, 2, 3, 160, 50],
-            [6, 28, 18, false, 3, 4, 150, 65],
-            [7, 28, 18, false, 3, 3, 140, 80],
-            [8, 26, 16, false, 3, 3, 130, 100],
-            [9, 24, 16, false, 3, 3, 120, 120],
-            [10, 22, 14, false, 4, 3, 110, 150],
+            [5, 30, 20, false, 3, 4, 160, 50],
+            [6, 30, 20, false, 3, 3, 150, 65],
+            [7, 30, 20, false, 4, 3, 140, 80],
+            [8, 30, 20, false, 2, 2, 130, 100],
+            [9, 30, 20, false, 3, 2, 120, 120],
+            [10, 30, 20, false, 4, 2, 110, 150],
         ];
 
         foreach ($defs as [$level, $w, $h, $wrap, $block, $gap, $tick, $target]) {
