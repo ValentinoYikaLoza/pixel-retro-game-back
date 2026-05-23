@@ -8,12 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         zip \
         unzip \
         git \
-    && docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath \
+    && docker-php-ext-install pdo pdo_pgsql pgsql zip bcmath opcache \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Composer (copiado desde la imagen oficial).
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# OPcache: cachea bytecode en memoria (clave para el rendimiento por petición).
+COPY docker/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 WORKDIR /var/www/html
 

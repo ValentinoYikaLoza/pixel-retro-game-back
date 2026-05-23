@@ -13,7 +13,14 @@ services:
             DB_USERNAME: "${DB_USERNAME}"
             DB_PASSWORD: "${DB_PASSWORD:-password}"
         volumes:
+            # Código de la app montado para recarga en vivo...
             - ".:/var/www/html"
+            # ...pero vendor/ y bootstrap/cache se sirven desde volúmenes
+            # internos del contenedor (filesystem rápido), no desde el bind
+            # mount de Windows, que es lentísimo para los miles de archivos
+            # que el autoloader de PHP lee en cada petición.
+            - "app-vendor:/var/www/html/vendor"
+            - "app-bootstrap-cache:/var/www/html/bootstrap/cache"
         networks:
             - sail
         depends_on:
@@ -62,4 +69,8 @@ networks:
         driver: bridge
 volumes:
     sail-pgsql:
+        driver: local
+    app-vendor:
+        driver: local
+    app-bootstrap-cache:
         driver: local
