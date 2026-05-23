@@ -50,10 +50,13 @@ class UserController extends Controller
 
     public function updateStreak(UpdateStreakRequest $request)
     {
-        // El frontend solo envía user_id: la racha incrementa en 1.
-        $this->service->addStreak((int) $request->user_id, 1);
-
-        return $this->ok('Streak actualizado');
+        // Check-in diario de racha (idempotente por día UTC). Devuelve el
+        // usuario con la racha ya actualizada. Nota: también se ejecuta al
+        // cargar el usuario (getUser), así que el cliente no necesita llamarlo.
+        return $this->ok(
+            'Streak actualizado',
+            new UserResource($this->service->checkInDaily((int) $request->user_id)),
+        );
     }
 
     public function updateExp(UpdateExpRequest $request)

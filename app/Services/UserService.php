@@ -29,15 +29,41 @@ class UserService
     }
 
     /**
-     * Stats de un usuario; además emite el evento de actualización.
+     * Stats de un usuario. Al cargarlos se hace el check-in diario de racha
+     * (idempotente por día UTC) y se emite el evento de actualización.
      */
     public function show(int $id): UserModel
     {
-        $user = $this->getById($id);
+        return $this->checkInDaily($id);
+    }
 
-        broadcast(new StatsUpdated($user))->toOthers();
+    /**
+     * Check-in diario de racha, server-authoritative con el día en UTC:
+     * - mismo día que el último check-in → no cambia (idempotente)
+     * - día siguiente (ayer) → +1 (racha consecutiva)
+     * - hueco de >1 día o sin registro previo → reinicia a 1
+     *
+     * Emite StatsUpdated para que el ranking/otros dispositivos se enteren.
+     */
+    public function checkInDaily(int $id): UserModel
+    {
+        return DB::transaction(function () use ($id) {
+            $user = $this->getById($id);
 
-        return $user;
+            $today = now('UTC')->toDateString();
+            $last = $user->last_streak_date?->toDateString();
+
+            if ($last !== $today) {
+                $yesterday = now('UTC')->subDay()->toDateString();
+                $user->streak = $last === $yesterday ? (int) $user->streak + 1 : 1;
+                $user->last_streak_date = $today;
+                $this->users->save($user);
+            }
+
+            broadcast(new StatsUpdated($user))->toOthers();
+
+            return $user;
+        });
     }
 
     /**
@@ -64,11 +90,6 @@ class UserService
     public function addLives(int $id, int $lives): UserModel
     {
         return $this->applyStat($id, fn (UserModel $u) => $u->lives += $lives);
-    }
-
-    public function addStreak(int $id, int $streak): UserModel
-    {
-        return $this->applyStat($id, fn (UserModel $u) => $u->streak += $streak);
     }
 
     /** La EXP del juego se almacena en `score` (es lo que muestra el ranking). */

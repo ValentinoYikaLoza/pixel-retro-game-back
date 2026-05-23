@@ -19,6 +19,7 @@ class UserModel extends Model
         'coins',
         'lives',
         'streak',
+        'last_streak_date',
         'times_ranked_first'
     ];
 
@@ -28,6 +29,7 @@ class UserModel extends Model
         'coins' => 'integer',
         'lives' => 'integer',
         'streak' => 'integer',
+        'last_streak_date' => 'date',
         'times_ranked_first' => 'integer',
     ];
 

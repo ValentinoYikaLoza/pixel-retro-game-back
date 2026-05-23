@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 class EloquentUserRepository implements UserRepositoryInterface
 {
     /** Columnas que el dominio necesita de un usuario individual. */
-    private const COLUMNS = ['id', 'name', 'coins', 'lives', 'score', 'streak', 'division_id'];
+    private const COLUMNS = ['id', 'name', 'coins', 'lives', 'score', 'streak', 'last_streak_date', 'division_id'];
 
     public function findById(int $id): ?UserModel
     {
