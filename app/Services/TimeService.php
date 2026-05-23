@@ -6,13 +6,13 @@ use Carbon\Carbon;
 
 class TimeService
 {
-    private const TIMEZONE = 'America/Lima';
-
     /**
-     * Hora actual del servidor en ISO 8601, ej: 2025-11-07T12:14:22.343-05:00.
+     * Hora actual del servidor en UTC (ISO 8601 Zulu), ej: 2025-11-07T17:14:22Z.
+     * Fuente de verdad: el cliente la adapta a la zona del usuario para mostrar
+     * y la usa como instante para los countdowns globales.
      */
     public function nowIso(): string
     {
-        return Carbon::now(self::TIMEZONE)->toIso8601String();
+        return Carbon::now('UTC')->toIso8601ZuluString();
     }
 }
