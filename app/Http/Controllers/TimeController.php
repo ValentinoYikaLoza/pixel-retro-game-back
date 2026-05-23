@@ -2,19 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use Illuminate\Http\Request;
+use App\Services\TimeService;
 
 class TimeController extends Controller
 {
+    public function __construct(private readonly TimeService $service) {}
+
     public function getTime()
     {
-        $now = Carbon::now('America/Lima');
-
-        $response = [
-            'time' => $now,
-        ];
-
-        return $this->ok("Fecha actual", $response);
+        return $this->ok('Fecha actual', [
+            'time' => $this->service->nowIso(),
+        ]);
     }
 }
