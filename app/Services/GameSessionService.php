@@ -418,6 +418,21 @@ class GameSessionService
             return;
         }
 
+        if ($gameId === GameModel::PIXEL_INVADERS) {
+            // metric = invasores eliminados. Cotas generosas por tiempo: solo
+            // atajan fraude grosero (el valor por kill varía con OVNI/jefe/combo).
+            $seconds = $durationMs / 1000;
+            $maxKills = (int) ($seconds * 8) + 80;
+            if ($metric > $maxKills) {
+                throw ApiException::unprocessable('Resultado de partida inválido');
+            }
+            $maxScore = $metric * 500 + (int) ($seconds * 50) + 3000;
+            if ($score > $maxScore) {
+                throw ApiException::unprocessable('Resultado de partida inválido');
+            }
+            return;
+        }
+
         // Tetris (y demás por defecto): metric = líneas. Cotas por tiempo.
         $seconds = $durationMs / 1000;
         $maxLines = (int) ($seconds * self::TETRIS_MAX_LINES_PER_SEC) + 4;
