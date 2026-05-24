@@ -125,6 +125,18 @@ class UserService
         return $this->applyStat($id, fn (UserModel $u) => $u->streak_freezes = min($max, (int) $u->streak_freezes + $amount));
     }
 
+    /** Canjea monedas por vidas (valida saldo). Atómico. */
+    public function purchaseLivesWithCoins(int $id, int $cost, int $lives): UserModel
+    {
+        return $this->applyStat($id, function (UserModel $u) use ($cost, $lives) {
+            if ((int) $u->coins < $cost) {
+                throw ApiException::unprocessable('No tienes monedas suficientes');
+            }
+            $u->coins = (int) $u->coins - $cost;
+            $u->lives = (int) $u->lives + $lives;
+        });
+    }
+
     /** Compra un congelador con monedas (valida saldo y tope). Atómico. */
     public function purchaseFreeze(int $id, int $cost, int $max): UserModel
     {

@@ -11,10 +11,12 @@ class CoinShopSeeder extends Seeder
     {
         CoinShopModel::truncate();
 
+        // Único producto que se compra con dinero real. Más monedas por dólar
+        // en los paquetes grandes (descuento por volumen).
         $rows = [
             ['id' => 1, 'quantity' => 100, 'price' => 1.99],
             ['id' => 2, 'quantity' => 300, 'price' => 4.99],
-            ['id' => 3, 'quantity' => 300, 'price' => 9.99],
+            ['id' => 3, 'quantity' => 700, 'price' => 9.99],
             ['id' => 4, 'quantity' => 1400, 'price' => 19.99],
         ];
 

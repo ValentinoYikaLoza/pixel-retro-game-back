@@ -55,12 +55,21 @@ class ShopService
         // TODO: integrar la pasarela de pago real antes de acreditar las monedas.
     }
 
+    /**
+     * Las vidas se compran con MONEDAS (el dinero real solo compra monedas).
+     * `price` del item es el costo en monedas; valida el saldo y acredita.
+     */
     public function purchaseLiveShopItem(int $userId, int $itemId): void
     {
-        if (!$this->shop->findLiveShop($itemId)) {
+        $item = $this->shop->findLiveShop($itemId);
+        if (!$item) {
             throw ApiException::notFound('Paquete de vidas no encontrado');
         }
 
-        // TODO: integrar la pasarela de pago real antes de acreditar las vidas.
+        $this->users->purchaseLivesWithCoins(
+            $userId,
+            (int) $item->price,
+            (int) $item->quantity,
+        );
     }
 }
