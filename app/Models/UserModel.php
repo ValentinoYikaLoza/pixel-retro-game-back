@@ -20,6 +20,8 @@ class UserModel extends Model
         'lives',
         'streak',
         'last_streak_date',
+        'streak_freezes',
+        'last_milestone',
         'times_ranked_first'
     ];
 
@@ -30,6 +32,8 @@ class UserModel extends Model
         'lives' => 'integer',
         'streak' => 'integer',
         'last_streak_date' => 'date',
+        'streak_freezes' => 'integer',
+        'last_milestone' => 'integer',
         'times_ranked_first' => 'integer',
     ];
 

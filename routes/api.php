@@ -4,6 +4,7 @@ use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\MissionController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\StreakController;
 use App\Http\Controllers\TimeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -49,6 +50,11 @@ Route::middleware('api')->group(function () {
     // Misiones
     Route::post('listMissions', [MissionController::class, 'index']);
     Route::post('updateProgress', [MissionController::class, 'updateProgress']);
+
+    // Racha (calendario, metas mensuales, hitos y congeladores)
+    Route::post('getStreak', [StreakController::class, 'getStreak']);
+    Route::post('claimStreakGoal', [StreakController::class, 'claimGoal']);
+    Route::post('buyStreakFreeze', [StreakController::class, 'buyFreeze']);
 
     // Tienda
     Route::post('listAdvertisements', [ShopController::class, 'listAdvertisements']);

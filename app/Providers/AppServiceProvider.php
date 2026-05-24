@@ -8,6 +8,7 @@ use App\Repositories\Contracts\GameRepositoryInterface;
 use App\Repositories\Contracts\GameSessionRepositoryInterface;
 use App\Repositories\Contracts\MissionRepositoryInterface;
 use App\Repositories\Contracts\ShopRepositoryInterface;
+use App\Repositories\Contracts\StreakRepositoryInterface;
 use App\Repositories\Contracts\UserGameStatRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EloquentDivisionRepository;
@@ -16,6 +17,7 @@ use App\Repositories\Eloquent\EloquentGameRepository;
 use App\Repositories\Eloquent\EloquentGameSessionRepository;
 use App\Repositories\Eloquent\EloquentMissionRepository;
 use App\Repositories\Eloquent\EloquentShopRepository;
+use App\Repositories\Eloquent\EloquentStreakRepository;
 use App\Repositories\Eloquent\EloquentUserGameStatRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use Illuminate\Support\ServiceProvider;
@@ -37,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
         GameSessionRepositoryInterface::class => EloquentGameSessionRepository::class,
         UserGameStatRepositoryInterface::class => EloquentUserGameStatRepository::class,
         GameLevelRepositoryInterface::class => EloquentGameLevelRepository::class,
+        StreakRepositoryInterface::class => EloquentStreakRepository::class,
     ];
 
     /**

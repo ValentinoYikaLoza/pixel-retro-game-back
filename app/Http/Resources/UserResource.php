@@ -19,6 +19,9 @@ class UserResource extends JsonResource
             'lives' => $this->lives,
             'score' => $this->score,
             'streak' => $this->streak,
+            // Solo presente tras el check-in diario (getUser): true si la racha
+            // subió hoy, para que el cliente muestre el toast de "+1".
+            'streak_incremented' => (bool) ($this->streak_incremented ?? false),
             'division_id' => $this->division_id,
         ];
     }

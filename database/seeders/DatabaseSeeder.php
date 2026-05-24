@@ -30,5 +30,6 @@ class DatabaseSeeder extends Seeder
         $this->call(AdvertisementSeeder::class);
         $this->call(CoinShopSeeder::class);
         $this->call(LiveShopSeeder::class);
+        $this->call(StreakMonthlyGoalSeeder::class);
     }
 }

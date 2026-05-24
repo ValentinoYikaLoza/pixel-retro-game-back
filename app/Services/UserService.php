@@ -6,13 +6,21 @@ use App\Events\StatsUpdated;
 use App\Events\UsersUpdated;
 use App\Exceptions\ApiException;
 use App\Models\UserModel;
+use App\Repositories\Contracts\StreakRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class UserService
 {
-    public function __construct(private readonly UserRepositoryInterface $users) {}
+    /** Hitos de racha consecutiva → monedas que se otorgan al alcanzarlos. */
+    public const STREAK_MILESTONES = [7 => 50, 30 => 250, 100 => 1000];
+
+    public function __construct(
+        private readonly UserRepositoryInterface $users,
+        private readonly StreakRepositoryInterface $streak,
+    ) {}
 
     /**
      * Obtiene un usuario o lanza 404. Uso interno y para lecturas.
@@ -40,29 +48,95 @@ class UserService
     /**
      * Check-in diario de racha, server-authoritative con el día en UTC:
      * - mismo día que el último check-in → no cambia (idempotente)
-     * - día siguiente (ayer) → +1 (racha consecutiva)
-     * - hueco de >1 día o sin registro previo → reinicia a 1
+     * - día consecutivo → +1
+     * - hueco de >1 día → reinicia a 1, salvo que tenga congeladores suficientes
+     *   para cubrir los días perdidos (se consumen y la racha continúa)
+     * - sin registro previo → empieza en 1
      *
-     * Emite StatsUpdated para que el ranking/otros dispositivos se enteren.
+     * Además registra el día en el historial (para el calendario), otorga los
+     * hitos consecutivos al cruzarlos y marca si la racha incrementó (para el
+     * toast en el cliente). Emite StatsUpdated.
      */
     public function checkInDaily(int $id): UserModel
     {
-        return DB::transaction(function () use ($id) {
+        $user = DB::transaction(function () use ($id) {
             $user = $this->getById($id);
 
             $today = now('UTC')->toDateString();
             $last = $user->last_streak_date?->toDateString();
+            $incremented = false;
 
             if ($last !== $today) {
-                $yesterday = now('UTC')->subDay()->toDateString();
-                $user->streak = $last === $yesterday ? (int) $user->streak + 1 : 1;
+                if ($last === null) {
+                    $user->streak = 1;
+                    $user->last_milestone = 0;
+                } else {
+                    $missed = (int) Carbon::parse($last)->diffInDays(Carbon::parse($today)) - 1;
+                    if ($missed <= 0) {
+                        $user->streak = (int) $user->streak + 1; // día consecutivo
+                        $incremented = true;
+                    } elseif ((int) $user->streak_freezes >= $missed) {
+                        // Los congeladores cubren los días perdidos: la racha sigue.
+                        $user->streak_freezes = (int) $user->streak_freezes - $missed;
+                        $user->streak = (int) $user->streak + 1;
+                        $incremented = true;
+                    } else {
+                        $user->streak = 1; // se rompió
+                        $user->last_milestone = 0;
+                    }
+                }
+
                 $user->last_streak_date = $today;
+                $this->grantMilestones($user);
                 $this->users->save($user);
+                $this->streak->recordCheckIn($id, $today);
             }
 
             broadcast(new StatsUpdated($user))->toOthers();
+            $user->setAttribute('streak_incremented', $incremented);
 
             return $user;
+        });
+
+        return $user;
+    }
+
+    /**
+     * Otorga (en monedas, sobre el modelo en memoria) los hitos consecutivos que
+     * la racha acaba de cruzar; evita repetirlos con `last_milestone`.
+     */
+    private function grantMilestones(UserModel $user): void
+    {
+        $coins = 0;
+        foreach (self::STREAK_MILESTONES as $threshold => $reward) {
+            if ((int) $user->streak >= $threshold && (int) $user->last_milestone < $threshold) {
+                $coins += $reward;
+                $user->last_milestone = $threshold;
+            }
+        }
+        if ($coins > 0) {
+            $user->coins = (int) $user->coins + $coins;
+        }
+    }
+
+    /** Suma congeladores respetando un tope. Emite StatsUpdated. */
+    public function addFreezes(int $id, int $amount, int $max): UserModel
+    {
+        return $this->applyStat($id, fn (UserModel $u) => $u->streak_freezes = min($max, (int) $u->streak_freezes + $amount));
+    }
+
+    /** Compra un congelador con monedas (valida saldo y tope). Atómico. */
+    public function purchaseFreeze(int $id, int $cost, int $max): UserModel
+    {
+        return $this->applyStat($id, function (UserModel $u) use ($cost, $max) {
+            if ((int) $u->streak_freezes >= $max) {
+                throw ApiException::unprocessable('Ya tienes el máximo de congeladores');
+            }
+            if ((int) $u->coins < $cost) {
+                throw ApiException::unprocessable('No tienes monedas suficientes');
+            }
+            $u->coins = (int) $u->coins - $cost;
+            $u->streak_freezes = (int) $u->streak_freezes + 1;
         });
     }
 
