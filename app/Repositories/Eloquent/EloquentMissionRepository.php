@@ -128,8 +128,8 @@ class EloquentMissionRepository implements MissionRepositoryInterface
         $daily = UserDailyMissionModel::with('dailyMission')
             ->where('user_id', $userId)
             ->whereIn('status_id', $active)
+            ->whereHas('dailyMission', fn ($q) => $q->where('game_id', $gameId))
             ->get()
-            ->filter(fn ($m) => $m->dailyMission && (int) $m->dailyMission->game_id === $gameId)
             ->map(fn ($m) => [
                 'model' => $m,
                 'mission_type_id' => (int) $m->dailyMission->mission_type_id,
@@ -140,8 +140,8 @@ class EloquentMissionRepository implements MissionRepositoryInterface
         $weekly = UserWeeklyMissionModel::with('weeklyMission')
             ->where('user_id', $userId)
             ->whereIn('status_id', $active)
+            ->whereHas('weeklyMission', fn ($q) => $q->where('game_id', $gameId))
             ->get()
-            ->filter(fn ($m) => $m->weeklyMission && (int) $m->weeklyMission->game_id === $gameId)
             ->map(fn ($m) => [
                 'model' => $m,
                 'mission_type_id' => (int) $m->weeklyMission->mission_type_id,
@@ -152,8 +152,8 @@ class EloquentMissionRepository implements MissionRepositoryInterface
         $monthly = UserMonthlyMissionModel::with('monthlyMission')
             ->where('user_id', $userId)
             ->whereIn('status_id', $active)
+            ->whereHas('monthlyMission', fn ($q) => $q->where('game_id', $gameId))
             ->get()
-            ->filter(fn ($m) => $m->monthlyMission && (int) $m->monthlyMission->game_id === $gameId)
             ->map(fn ($m) => [
                 'model' => $m,
                 'mission_type_id' => (int) $m->monthlyMission->mission_type_id,
@@ -209,21 +209,42 @@ class EloquentMissionRepository implements MissionRepositoryInterface
             return;
         }
 
-        $pool = null; // ids de misiones base; se cargan solo si hace falta
+        // Mapa misión base => juego, para no asignar dos misiones del mismo
+        // juego al usuario en el mismo período (variedad).
+        $poolGames = $baseModel::pluck('game_id', 'id')->all();
+
+        // Primero: filas que se conservan (período actual o init). Sus juegos
+        // quedan "usados" para el dedupe.
+        $usedGames = [];
+        $toReassign = [];
         foreach ($rows as $row) {
             if ($row->period_key === $currentKey) {
+                $usedGames[$poolGames[$row->{$fk}] ?? -1] = true;
                 continue;
             }
             if ($row->period_key === null) {
                 $row->period_key = $currentKey; // init sin reiniciar progreso
                 $row->save();
+                $usedGames[$poolGames[$row->{$fk}] ?? -1] = true;
                 continue;
             }
+            $toReassign[] = $row; // período vencido
+        }
 
-            // Período vencido: nueva misión + progreso reiniciado.
-            $pool ??= $baseModel::pluck('id')->all();
-            if (!empty($pool)) {
-                $row->{$fk} = $pool[array_rand($pool)];
+        // Reasigna las vencidas eligiendo, si se puede, una misión de un juego
+        // aún no usado por el usuario este período.
+        foreach ($toReassign as $row) {
+            $candidates = array_keys(array_filter(
+                $poolGames,
+                fn ($game) => !isset($usedGames[$game]),
+            ));
+            if (empty($candidates)) {
+                $candidates = array_keys($poolGames); // fallback: cualquiera
+            }
+            if (!empty($candidates)) {
+                $chosen = $candidates[array_rand($candidates)];
+                $row->{$fk} = $chosen;
+                $usedGames[$poolGames[$chosen]] = true;
             }
             $row->current_value = 0;
             $row->status_id = StatusModel::PENDING;
