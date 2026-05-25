@@ -7,108 +7,46 @@ use App\Models\GameModel;
 use App\Models\MissionTypeModel;
 use App\Models\RewardModel;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Arr;
 
+/**
+ * Pool CURADO de misiones diarias: para cada juego, una misión de cada tipo
+ * con valores y recompensa diseñados a mano (no aleatorios). Solo las `active`
+ * se asignan a los usuarios; el contenido viejo queda desactivado (sin borrar,
+ * para no romper asignaciones existentes).
+ */
 class DailyMissionSeeder extends Seeder
 {
     public function run(): void
     {
-        DailyMissionModel::truncate();
-
-        $missionsToGenerate = 1000;
-        $missions = [];
-
-        for ($i = 0; $i < $missionsToGenerate; $i++) {
-
-            $game = Arr::random([
-                GameModel::TETRIS,
-                GameModel::SNAKE,
-                GameModel::PACMAN,
-                GameModel::PIXEL_INVADERS,
-            ]);
-
-            $type = Arr::random([
-                MissionTypeModel::POINTS,
-                MissionTypeModel::POINTS,
-                MissionTypeModel::MATCHES,
-                MissionTypeModel::EXACT
-            ]);
-
-            [$points, $description] = $this->generateMission($type, $game);
-
-            // Calcular valor total ponderado
-            $rewardValue = $this->calculateRewardValue($type, $points);
-
-            $missions[] = [
-                'description'     => $description,
-                'total_value'     => $points,
-                'reward_id'       => $this->getRewardLevel($rewardValue),
-                'mission_type_id' => $type,
-                'game_id'         => $game,
-            ];
-        }
-
-        DailyMissionModel::insert($missions);
-    }
-
-    private function generateMission(int $type, string $game): array
-    {
-        $game_name = $this->getGameName($game);
-
-        return match ($type) {
-            MissionTypeModel::POINTS    => $this->generatePointsMission($game_name),
-            MissionTypeModel::MATCHES   => $this->generateMatchesMission($game_name),
-            MissionTypeModel::EXACT     => $this->generateExactMission($game_name),
-        };
-    }
-
-    private function generatePointsMission(string $game): array
-    {
-        $points = rand(100, 3000);
-        return [$points, "Obtén {$points} puntos en {$game}"];
-    }
-
-    private function generateMatchesMission(string $game): array
-    {
-        $matches = rand(3, 15);
-        return [$matches, "Juega {$matches} partidas en {$game}"];
-    }
-
-    private function generateExactMission(string $game): array
-    {
-        $exactPoints = Arr::random([100, 200, 500, 1000]);
-        return [$exactPoints, "Obtén exactamente {$exactPoints} puntos en {$game}"];
-    }
-
-    private function calculateRewardValue(int $type, int $baseValue): float
-    {
-        // Ajustar peso según tipo de misión
-        $multiplier = match ($type) {
-            MissionTypeModel::POINTS => 1.0,
-            MissionTypeModel::MATCHES => 100,  // cada partida equivale a 100 puntos
-            MissionTypeModel::EXACT => 1.5,   // más difícil, mayor recompensa
-        };
-
-        return $baseValue * $multiplier;
-    }
-
-    private function getRewardLevel(float $value): int
-    {
-        return match (true) {
-            $value < 500     => RewardModel::BRONZE,
-            $value < 1500    => RewardModel::SILVER,
-            $value < 3000    => RewardModel::GOLD,
-            default          => RewardModel::BRONZE,
-        };
-    }
-
-    private function getGameName(int $gameId): string
-    {
-        return match ($gameId) {
-            GameModel::TETRIS         => 'Tetris',
-            GameModel::SNAKE          => 'Snake',
-            GameModel::PACMAN         => 'Pacman',
+        $games = [
+            GameModel::SNAKE => 'Snake',
+            GameModel::TETRIS => 'Tetris',
             GameModel::PIXEL_INVADERS => 'Pixel Invaders',
-        };
+            GameModel::PACMAN => 'Pacman',
+        ];
+
+        // [tipo, valor, recompensa, plantilla de descripción]
+        $defs = [
+            [MissionTypeModel::POINTS, 600, RewardModel::BRONZE, 'Acumula %d puntos en %s'],
+            [MissionTypeModel::MATCHES, 5, RewardModel::BRONZE, 'Juega %d partidas de %s'],
+            [MissionTypeModel::SINGLE_GAME_SCORE, 400, RewardModel::SILVER, 'Haz %d puntos en una sola partida de %s'],
+        ];
+
+        DailyMissionModel::query()->update(['active' => false]);
+
+        $id = 1;
+        foreach ($games as $gameId => $gameName) {
+            foreach ($defs as [$type, $value, $reward, $template]) {
+                DailyMissionModel::updateOrCreate(['id' => $id], [
+                    'description' => sprintf($template, $value, $gameName),
+                    'total_value' => $value,
+                    'game_id' => $gameId,
+                    'mission_type_id' => $type,
+                    'reward_id' => $reward,
+                    'active' => true,
+                ]);
+                $id++;
+            }
+        }
     }
 }

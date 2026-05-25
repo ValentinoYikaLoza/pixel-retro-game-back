@@ -16,11 +16,19 @@ class DailyMissionModel extends Model
     protected $fillable = [
         'description',
         'total_value',
+        'game_id',
+        'mission_type_id',
+        'reward_id',
+        'active',
     ];
 
     protected $casts = [
         'description' => 'string',
         'total_value' => 'integer',
+        'game_id' => 'integer',
+        'mission_type_id' => 'integer',
+        'reward_id' => 'integer',
+        'active' => 'boolean',
     ];
 
     protected $hidden = [

@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class MissionTypeModel extends Model
 {
-    const POINTS = 1;
-    const MATCHES = 2;
-    const EXACT = 3;
+    const POINTS = 1;          // acumula puntos entre partidas
+    const MATCHES = 2;         // jugar N partidas
+    const SINGLE_GAME_SCORE = 3; // alcanzar N puntos en UNA sola partida
 
     public $timestamps = false;
 

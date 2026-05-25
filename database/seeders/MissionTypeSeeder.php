@@ -16,7 +16,7 @@ class MissionTypeSeeder extends Seeder
         $rows = [
             ['id' => MissionTypeModel::POINTS, 'name' => 'Points'],
             ['id' => MissionTypeModel::MATCHES, 'name' => 'Matches'],
-            ['id' => MissionTypeModel::EXACT, 'name' => 'Exact'],
+            ['id' => MissionTypeModel::SINGLE_GAME_SCORE, 'name' => 'Single Game Score'],
         ];
 
         foreach ($rows as $row) {

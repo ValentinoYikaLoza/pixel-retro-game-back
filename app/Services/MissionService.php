@@ -59,9 +59,10 @@ class MissionService
         $coinsEarned = 0;
         foreach ($items as $item) {
             $delta = match ($item['mission_type_id']) {
-                MissionTypeModel::POINTS  => $score,
-                MissionTypeModel::MATCHES => 1,
-                MissionTypeModel::EXACT   => $score === $item['total_value'] ? $item['total_value'] : 0,
+                MissionTypeModel::POINTS  => $score, // acumula entre partidas
+                MissionTypeModel::MATCHES => 1,      // +1 partida jugada
+                // Reto de habilidad: se completa si UNA partida alcanza la meta.
+                MissionTypeModel::SINGLE_GAME_SCORE => $score >= $item['total_value'] ? $item['total_value'] : 0,
                 default                   => 0,
             };
 

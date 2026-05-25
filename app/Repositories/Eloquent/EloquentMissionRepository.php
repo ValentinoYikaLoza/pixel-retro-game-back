@@ -6,6 +6,7 @@ use App\Models\DailyMissionModel;
 use App\Models\MonthlyMissionModel;
 use App\Models\StatusModel;
 use App\Models\UserDailyMissionModel;
+use App\Models\UserGameStatModel;
 use App\Models\UserMonthlyMissionModel;
 use App\Models\UserWeeklyMissionModel;
 use App\Models\WeeklyMissionModel;
@@ -166,12 +167,20 @@ class EloquentMissionRepository implements MissionRepositoryInterface
 
     public function rolloverUserMissions(int $userId, array $keys): void
     {
+        // Juegos que el usuario realmente juega: las nuevas misiones se sesgan
+        // hacia ellos (relevancia). Si no ha jugado nada, no se filtra.
+        $playedGames = UserGameStatModel::where('user_id', $userId)
+            ->where('total_games', '>', 0)
+            ->pluck('game_id')
+            ->all();
+
         $this->rolloverType(
             UserDailyMissionModel::class,
             'daily_mission_id',
             DailyMissionModel::class,
             $userId,
             $keys['daily'],
+            $playedGames,
         );
         $this->rolloverType(
             UserWeeklyMissionModel::class,
@@ -179,6 +188,7 @@ class EloquentMissionRepository implements MissionRepositoryInterface
             WeeklyMissionModel::class,
             $userId,
             $keys['weekly'],
+            $playedGames,
         );
         $this->rolloverType(
             UserMonthlyMissionModel::class,
@@ -186,6 +196,7 @@ class EloquentMissionRepository implements MissionRepositoryInterface
             MonthlyMissionModel::class,
             $userId,
             $keys['monthly'],
+            $playedGames,
         );
     }
 
@@ -203,15 +214,17 @@ class EloquentMissionRepository implements MissionRepositoryInterface
         string $baseModel,
         int $userId,
         string $currentKey,
+        array $playedGames,
     ): void {
         $rows = $userModel::where('user_id', $userId)->get();
         if ($rows->isEmpty()) {
             return;
         }
 
-        // Mapa misión base => juego, para no asignar dos misiones del mismo
-        // juego al usuario en el mismo período (variedad).
-        $poolGames = $baseModel::pluck('game_id', 'id')->all();
+        // Pool curado (solo misiones activas) → mapa misión base => juego, para
+        // no asignar dos misiones del mismo juego al usuario en el período.
+        $poolGames = $baseModel::where('active', true)->pluck('game_id', 'id')->all();
+        $played = array_flip($playedGames); // game_id => true
 
         // Primero: filas que se conservan (período actual o init). Sus juegos
         // quedan "usados" para el dedupe.
@@ -231,18 +244,16 @@ class EloquentMissionRepository implements MissionRepositoryInterface
             $toReassign[] = $row; // período vencido
         }
 
-        // Reasigna las vencidas eligiendo, si se puede, una misión de un juego
-        // aún no usado por el usuario este período.
+        // Reasigna las vencidas: prioriza misiones de un juego (1) que el
+        // usuario aún no usó este período y (2) que sí juega; con fallbacks.
         foreach ($toReassign as $row) {
-            $candidates = array_keys(array_filter(
-                $poolGames,
-                fn ($game) => !isset($usedGames[$game]),
-            ));
-            if (empty($candidates)) {
-                $candidates = array_keys($poolGames); // fallback: cualquiera
-            }
-            if (!empty($candidates)) {
-                $chosen = $candidates[array_rand($candidates)];
+            $unused = array_filter($poolGames, fn ($game) => !isset($usedGames[$game]));
+            $preferred = array_filter($unused, fn ($game) => isset($played[$game]));
+            $pickPool = !empty($preferred)
+                ? $preferred
+                : (!empty($unused) ? $unused : $poolGames);
+            if (!empty($pickPool)) {
+                $chosen = array_rand($pickPool); // clave = id de misión base
                 $row->{$fk} = $chosen;
                 $usedGames[$poolGames[$chosen]] = true;
             }
