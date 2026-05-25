@@ -144,6 +144,7 @@ class GameSessionService
                 'walls' => $lvl->walls ?? [],
                 'target_score' => (int) $lvl->target_score,
                 'best_score' => (int) ($p->best_score ?? 0),
+                'best_points' => (int) ($p->best_points ?? 0),
                 'cleared' => $p && $p->cleared_at !== null,
                 'unlocked' => $lvl->level === 1
                     || ($clearedByLevel[$lvl->level - 1] ?? false),
@@ -265,6 +266,8 @@ class GameSessionService
                 $progress = $this->levels->firstOrNewProgress($userId, $levelConfig->id);
                 $wasCleared = $progress->cleared_at !== null;
                 $progress->best_score = max((int) $progress->best_score, $objective);
+                // Récord de puntos (score real) por nivel, para el selector.
+                $progress->best_points = max((int) ($progress->best_points ?? 0), $score);
 
                 if ($objective >= $levelConfig->target_score) {
                     $levelCleared = true;

@@ -16,6 +16,7 @@ class UserGameLevelModel extends Model
         'user_id',
         'game_level_id',
         'best_score',
+        'best_points',
         'cleared_at',
     ];
 
@@ -23,6 +24,7 @@ class UserGameLevelModel extends Model
         'user_id' => 'integer',
         'game_level_id' => 'integer',
         'best_score' => 'integer',
+        'best_points' => 'integer',
         'cleared_at' => 'datetime',
     ];
 }
