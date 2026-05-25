@@ -16,6 +16,13 @@ class EloquentUserRepository implements UserRepositoryInterface
         return UserModel::query()->select(self::COLUMNS)->find($id);
     }
 
+    public function findForUpdate(int $id): ?UserModel
+    {
+        // FOR UPDATE: bloquea la fila hasta el commit de la transacción actual,
+        // serializando las mutaciones concurrentes de stats (anti lost-update).
+        return UserModel::query()->select(self::COLUMNS)->lockForUpdate()->find($id);
+    }
+
     public function ranking(?int $divisionId, int $ensureUserId): Collection
     {
         $users = $this->rankingQuery($divisionId)

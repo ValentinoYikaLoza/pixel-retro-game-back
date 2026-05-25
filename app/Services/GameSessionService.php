@@ -392,9 +392,15 @@ class GameSessionService
         ];
     }
 
+    /**
+     * Carga el usuario con bloqueo de fila. Todas las llamadas a getUser ocurren
+     * dentro de una transacción (start/finish/doubleReward/abandon), así que el
+     * FOR UPDATE serializa las mutaciones de stats y evita lost updates / doble
+     * gasto de vidas o monedas.
+     */
     private function getUser(int $userId): UserModel
     {
-        $user = $this->users->findById($userId);
+        $user = $this->users->findForUpdate($userId);
         if (!$user) {
             throw ApiException::notFound('Usuario no encontrado');
         }

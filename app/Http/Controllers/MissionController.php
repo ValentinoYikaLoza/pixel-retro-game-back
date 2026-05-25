@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Mission\ListMissionsRequest;
-use App\Http\Requests\Mission\UpdateProgressRequest;
 use App\Http\Resources\MissionResource;
 use App\Services\MissionService;
 
@@ -20,18 +19,5 @@ class MissionController extends Controller
             'weeklyMissions' => MissionResource::collection($missions['weekly']),
             'monthlyMissions' => MissionResource::collection($missions['monthly']),
         ]);
-    }
-
-    public function updateProgress(UpdateProgressRequest $request)
-    {
-        $this->service->updateProgress(
-            (int) $request->user_id,
-            $request->mission_type,
-            (int) $request->mission_id,
-            (int) $request->progress,
-        );
-
-        // La lista actualizada llega al cliente vía el evento MissionsUpdated.
-        return $this->ok('Progreso de misión actualizado');
     }
 }

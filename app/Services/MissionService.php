@@ -5,17 +5,25 @@ namespace App\Services;
 use App\Events\MissionsUpdated;
 use App\Exceptions\ApiException;
 use App\Models\MissionTypeModel;
+use App\Models\RewardModel;
 use App\Models\StatusModel;
 use App\Repositories\Contracts\MissionRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class MissionService
 {
+    /** Monedas que otorga una misión completada, según el tier de su recompensa. */
+    private const REWARD_COINS = [
+        RewardModel::BRONZE => 50,
+        RewardModel::SILVER => 150,
+        RewardModel::GOLD => 400,
+    ];
+
     public function __construct(
         private readonly MissionRepositoryInterface $missions,
         private readonly UserRepositoryInterface $users,
+        private readonly UserService $userService,
     ) {}
 
     /**
@@ -35,33 +43,6 @@ class MissionService
     }
 
     /**
-     * Suma progreso a una misión asignada y devuelve el listado actualizado.
-     *
-     * @return array{daily: \Illuminate\Support\Collection, weekly: \Illuminate\Support\Collection, monthly: \Illuminate\Support\Collection}
-     */
-    public function updateProgress(int $userId, string $type, int $missionId, int $progress): array
-    {
-        $this->assertUserExists($userId);
-        $this->rollover($userId);
-
-        return DB::transaction(function () use ($userId, $type, $missionId, $progress) {
-            $mission = $this->missions->findUserMission($type, $userId, $missionId);
-
-            if (!$mission) {
-                throw ApiException::notFound('Misión no encontrada');
-            }
-
-            $mission->current_value += $progress;
-            $this->missions->save($mission);
-
-            $missions = $this->gather($userId);
-            $this->broadcastList($userId, $missions);
-
-            return $missions;
-        });
-    }
-
-    /**
      * Avanza las misiones del usuario asociadas a un juego tras una partida.
      * Lo invoca GameSessionService al terminar (el cliente nunca toca esto):
      *  - POINTS: suma el score de la partida.
@@ -75,6 +56,7 @@ class MissionService
         $items = $this->missions->advanceableForGame($userId, $gameId);
 
         $changed = false;
+        $coinsEarned = 0;
         foreach ($items as $item) {
             $delta = match ($item['mission_type_id']) {
                 MissionTypeModel::POINTS  => $score,
@@ -94,12 +76,19 @@ class MissionService
                 $mission->current_value = $item['total_value'];
                 $mission->status_id = StatusModel::COMPLETED;
                 $mission->completed_at = now();
+                // Otorga la recompensa exactamente una vez: al completarse la
+                // misión sale del conjunto "advanceable", así que no se repite.
+                $coinsEarned += self::REWARD_COINS[$item['reward_id'] ?? 0] ?? 0;
             } else {
                 $mission->status_id = StatusModel::IN_PROGRESS;
             }
 
             $this->missions->save($mission);
             $changed = true;
+        }
+
+        if ($coinsEarned > 0) {
+            $this->userService->addCoins($userId, $coinsEarned);
         }
 
         if ($changed) {

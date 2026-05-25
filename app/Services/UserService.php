@@ -37,6 +37,21 @@ class UserService
     }
 
     /**
+     * Como getById pero con bloqueo de fila; solo válido dentro de una
+     * transacción. Lo usan las mutaciones de stats para evitar lost updates.
+     */
+    private function getForUpdate(int $id): UserModel
+    {
+        $user = $this->users->findForUpdate($id);
+
+        if (!$user) {
+            throw ApiException::notFound('Usuario no encontrado');
+        }
+
+        return $user;
+    }
+
+    /**
      * Stats de un usuario. Al cargarlos se hace el check-in diario de racha
      * (idempotente por día UTC) y se emite el evento de actualización.
      */
@@ -60,7 +75,7 @@ class UserService
     public function checkInDaily(int $id): UserModel
     {
         $user = DB::transaction(function () use ($id) {
-            $user = $this->getById($id);
+            $user = $this->getForUpdate($id);
 
             $today = now('UTC')->toDateString();
             $last = $user->last_streak_date?->toDateString();
@@ -190,7 +205,7 @@ class UserService
     private function applyStat(int $id, callable $mutate): UserModel
     {
         return DB::transaction(function () use ($id, $mutate) {
-            $user = $this->getById($id);
+            $user = $this->getForUpdate($id);
             $mutate($user);
             $this->users->save($user);
 

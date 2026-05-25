@@ -47,9 +47,9 @@ Route::middleware('api')->group(function () {
     Route::get('listDivisions', [DivisionController::class, 'index']);
     Route::post('listUsers', [UserController::class, 'listUsers']);
 
-    // Misiones
+    // Misiones (el avance es server-authoritative al terminar la partida; no
+    // hay endpoint para que el cliente sume progreso a mano).
     Route::post('listMissions', [MissionController::class, 'index']);
-    Route::post('updateProgress', [MissionController::class, 'updateProgress']);
 
     // Racha (calendario, metas mensuales, hitos y congeladores)
     Route::post('getStreak', [StreakController::class, 'getStreak']);

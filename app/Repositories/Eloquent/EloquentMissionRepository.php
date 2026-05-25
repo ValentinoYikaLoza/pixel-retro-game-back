@@ -134,6 +134,7 @@ class EloquentMissionRepository implements MissionRepositoryInterface
                 'model' => $m,
                 'mission_type_id' => (int) $m->dailyMission->mission_type_id,
                 'total_value' => (int) $m->dailyMission->total_value,
+                'reward_id' => (int) $m->dailyMission->reward_id,
             ]);
 
         $weekly = UserWeeklyMissionModel::with('weeklyMission')
@@ -145,6 +146,7 @@ class EloquentMissionRepository implements MissionRepositoryInterface
                 'model' => $m,
                 'mission_type_id' => (int) $m->weeklyMission->mission_type_id,
                 'total_value' => (int) $m->weeklyMission->total_value,
+                'reward_id' => (int) $m->weeklyMission->reward_id,
             ]);
 
         $monthly = UserMonthlyMissionModel::with('monthlyMission')
@@ -156,6 +158,7 @@ class EloquentMissionRepository implements MissionRepositoryInterface
                 'model' => $m,
                 'mission_type_id' => (int) $m->monthlyMission->mission_type_id,
                 'total_value' => (int) $m->monthlyMission->total_value,
+                'reward_id' => (int) $m->monthlyMission->reward_id,
             ]);
 
         return $daily->concat($weekly)->concat($monthly)->values();
