@@ -64,15 +64,21 @@ class GameSessionService
             throw ApiException::unprocessable('Juego no disponible');
         }
 
-        $levelConfig = $this->levels->find($game->id, $level);
-        if (!$levelConfig) {
-            throw ApiException::notFound('Nivel no encontrado');
-        }
-        if (!$this->isLevelUnlocked($userId, $game->id, $level)) {
-            throw ApiException::unprocessable('Nivel bloqueado');
+        // level 0 = modo infinito: sin nivel ni objetivo, siempre disponible y
+        // usa la config base del juego (tabla `game`).
+        $isInfinite = $level === 0;
+        $levelConfig = null;
+        if (!$isInfinite) {
+            $levelConfig = $this->levels->find($game->id, $level);
+            if (!$levelConfig) {
+                throw ApiException::notFound('Nivel no encontrado');
+            }
+            if (!$this->isLevelUnlocked($userId, $game->id, $level)) {
+                throw ApiException::unprocessable('Nivel bloqueado');
+            }
         }
 
-        return DB::transaction(function () use ($userId, $game, $level, $levelConfig) {
+        return DB::transaction(function () use ($userId, $game, $level, $levelConfig, $isInfinite) {
             $user = $this->getUser($userId);
 
             if ($user->lives < $game->lives_cost) {
@@ -97,12 +103,12 @@ class GameSessionService
                 'session_id' => (int) $session->id,
                 'level' => $level,
                 'seed' => $seed,
-                'tick_ms' => (int) $levelConfig->tick_ms,
-                'grid_width' => (int) $levelConfig->grid_width,
-                'grid_height' => (int) $levelConfig->grid_height,
-                'wrap_around' => (bool) $levelConfig->wrap_around,
-                'walls' => $levelConfig->walls ?? [],
-                'target_score' => (int) $levelConfig->target_score,
+                'tick_ms' => (int) ($isInfinite ? $game->tick_ms : $levelConfig->tick_ms),
+                'grid_width' => (int) ($isInfinite ? $game->grid_width : $levelConfig->grid_width),
+                'grid_height' => (int) ($isInfinite ? $game->grid_height : $levelConfig->grid_height),
+                'wrap_around' => $isInfinite ? true : (bool) $levelConfig->wrap_around,
+                'walls' => $isInfinite ? [] : ($levelConfig->walls ?? []),
+                'target_score' => $isInfinite ? 0 : (int) $levelConfig->target_score,
                 'lives_left' => (int) $user->lives,
             ];
         });
@@ -229,10 +235,17 @@ class GameSessionService
             $session->ended_at = now();
             $this->sessions->save($session);
 
-            // Agregado por usuario+juego.
+            // Agregado por usuario+juego. El récord del modo infinito (level 0)
+            // se guarda aparte del de niveles.
+            $isInfinite = (int) $session->level === 0;
             $stat = $this->stats->firstOrNew($userId, $session->game_id);
-            $isHighScore = $score > (int) $stat->high_score;
-            $stat->high_score = max((int) $stat->high_score, $score);
+            if ($isInfinite) {
+                $isHighScore = $score > (int) $stat->infinite_high_score;
+                $stat->infinite_high_score = max((int) $stat->infinite_high_score, $score);
+            } else {
+                $isHighScore = $score > (int) $stat->high_score;
+                $stat->high_score = max((int) $stat->high_score, $score);
+            }
             $stat->total_games = (int) $stat->total_games + 1;
             $stat->total_score = (int) $stat->total_score + $score;
             $stat->total_food = (int) $stat->total_food + $foodEaten;
@@ -287,7 +300,7 @@ class GameSessionService
 
             return [
                 'is_high_score' => $isHighScore,
-                'high_score' => (int) $stat->high_score,
+                'high_score' => (int) ($isInfinite ? $stat->infinite_high_score : $stat->high_score),
                 'exp_gained' => $exp,
                 'coins_gained' => $coins,
                 'level_cleared' => $levelCleared,

@@ -16,7 +16,8 @@ class StartGameRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer'],
             'game_code' => ['required', 'string'],
-            'level' => ['nullable', 'integer', 'min:1'],
+            // level 0 = modo infinito (sin nivel/objetivo); >=1 = nivel normal.
+            'level' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

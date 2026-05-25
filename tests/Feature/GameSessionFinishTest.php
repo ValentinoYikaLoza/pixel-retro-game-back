@@ -85,4 +85,29 @@ class GameSessionFinishTest extends TestCase
         $this->assertSame(10, (int) $user->fresh()->score);
         $this->assertSame(10, (int) $user->fresh()->weekly_points);
     }
+
+    public function test_infinite_mode_uses_separate_record_and_no_level_clear(): void
+    {
+        $user = $this->makeUser();
+        $svc = app(GameSessionService::class);
+
+        // level 0 = infinito: no requiere nivel y usa la config base del juego.
+        $session = $svc->start($user->id, 'snake', 0);
+        $this->assertSame(0, (int) $session['level']);
+        $this->assertSame(0, (int) $session['target_score']);
+
+        GameSessionModel::where('id', $session['session_id'])
+            ->update(['started_at' => now()->subSeconds(60)]);
+
+        $result = $svc->finish($user->id, $session['session_id'], 10, 5, 60000);
+
+        // No hay "nivel superado" en infinito.
+        $this->assertFalse($result['level_cleared'] ?? false);
+
+        // El récord va al infinite_high_score, NO al high_score de niveles.
+        $stat = \App\Models\UserGameStatModel::where('user_id', $user->id)
+            ->where('game_id', \App\Models\GameModel::SNAKE)->first();
+        $this->assertSame(10, (int) $stat->infinite_high_score);
+        $this->assertSame(0, (int) $stat->high_score);
+    }
 }
