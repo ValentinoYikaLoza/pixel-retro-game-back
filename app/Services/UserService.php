@@ -193,10 +193,16 @@ class UserService
         return $this->applyStat($id, fn (UserModel $u) => $u->lives += $lives);
     }
 
-    /** La EXP del juego se almacena en `score` (es lo que muestra el ranking). */
+    /**
+     * La EXP suma al `score` de por vida (perfil) y a los `weekly_points` de la
+     * liga (se reinician cada semana en el rollover de divisiones).
+     */
     public function addExp(int $id, int $exp): UserModel
     {
-        return $this->applyStat($id, fn (UserModel $u) => $u->score += $exp);
+        return $this->applyStat($id, function (UserModel $u) use ($exp) {
+            $u->score += $exp;
+            $u->weekly_points += $exp;
+        });
     }
 
     /**

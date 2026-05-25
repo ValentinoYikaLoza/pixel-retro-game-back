@@ -242,6 +242,7 @@ class GameSessionService
             // Recompensas al usuario (exp suma al `score` del ranking).
             $user = $this->getUser($userId);
             $user->score += $exp;
+            $user->weekly_points += $exp; // métrica de la liga semanal
             $user->coins += $coins;
             $this->users->save($user);
             broadcast(new StatsUpdated($user))->toOthers();
@@ -326,6 +327,7 @@ class GameSessionService
             if ($bonus > 0) {
                 $user = $this->getUser($userId);
                 $user->score += $bonus;
+                $user->weekly_points += $bonus; // también suma a la liga semanal
                 $this->users->save($user);
                 broadcast(new StatsUpdated($user))->toOthers();
                 broadcast(new UsersUpdated($userId, [

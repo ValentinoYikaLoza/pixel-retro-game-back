@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 class EloquentUserRepository implements UserRepositoryInterface
 {
     /** Columnas que el dominio necesita de un usuario individual. */
-    private const COLUMNS = ['id', 'name', 'coins', 'lives', 'score', 'streak', 'last_streak_date', 'streak_freezes', 'last_milestone', 'division_id'];
+    private const COLUMNS = ['id', 'name', 'coins', 'lives', 'score', 'weekly_points', 'streak', 'last_streak_date', 'streak_freezes', 'last_milestone', 'division_id'];
 
     public function findById(int $id): ?UserModel
     {
@@ -25,8 +25,10 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function ranking(?int $divisionId, int $ensureUserId): Collection
     {
+        // El ranking de liga ordena por puntos SEMANALES (se reinician cada
+        // semana), no por el score de por vida: así es una competencia real.
         $users = $this->rankingQuery($divisionId)
-            ->orderBy('u.score', 'DESC')
+            ->orderBy('u.weekly_points', 'DESC')
             ->limit(20)
             ->get();
 
@@ -56,11 +58,13 @@ class EloquentUserRepository implements UserRepositoryInterface
      */
     private function rankingQuery(?int $divisionId)
     {
+        // Se expone weekly_points bajo el alias `score`: el cliente del ranking
+        // muestra los puntos de liga de la semana sin cambios en el frontend.
         $query = UserModel::query()
             ->from('user as u')
             ->leftJoin('division', 'u.division_id', '=', 'division.id')
             ->leftJoin('country', 'u.country_id', '=', 'country.id')
-            ->select('u.id', 'u.name', 'u.score', 'u.times_ranked_first', 'country.flag');
+            ->select('u.id', 'u.name', 'u.weekly_points as score', 'u.times_ranked_first', 'country.flag');
 
         if ($divisionId) {
             $query->where('division.id', $divisionId);

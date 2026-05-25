@@ -16,6 +16,7 @@ class UserModel extends Model
     protected $fillable = [
         'name',
         'score',
+        'weekly_points',
         'coins',
         'lives',
         'streak',
@@ -28,6 +29,7 @@ class UserModel extends Model
     protected $casts = [
         'name' => 'string',
         'score' => 'integer',
+        'weekly_points' => 'integer',
         'coins' => 'integer',
         'lives' => 'integer',
         'streak' => 'integer',

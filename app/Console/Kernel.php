@@ -13,6 +13,14 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('broadcast:time')->everySecond();
+
+        // Cierre semanal de la liga (lunes 00:00 UTC): ascensos/descensos de
+        // división y reinicio de los puntos semanales. withoutOverlapping evita
+        // que se solape si una corrida tardara.
+        $schedule->command('leagues:rollover')
+            ->weeklyOn(1, '00:00')
+            ->timezone('UTC')
+            ->withoutOverlapping();
     }
 
     /**
