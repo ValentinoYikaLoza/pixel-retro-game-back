@@ -256,7 +256,11 @@ class GameSessionService
             $levelCleared = false;
             $unlockedNext = false;
             if ($levelConfig) {
-                $objective = $session->game_id === GameModel::TETRIS ? $foodEaten : $score;
+                // Tetris se supera por LÍNEAS y Pac-Man por PELLETS comidos
+                // (su métrica secundaria); los demás por PUNTOS.
+                $objective = in_array($session->game_id, [GameModel::TETRIS, GameModel::PACMAN], true)
+                    ? $foodEaten
+                    : $score;
 
                 $progress = $this->levels->firstOrNewProgress($userId, $levelConfig->id);
                 $wasCleared = $progress->cleared_at !== null;
@@ -427,6 +431,23 @@ class GameSessionService
                 throw ApiException::unprocessable('Resultado de partida inválido');
             }
             $maxScore = $metric * 500 + (int) ($seconds * 50) + 3000;
+            if ($score > $maxScore) {
+                throw ApiException::unprocessable('Resultado de partida inválido');
+            }
+            return;
+        }
+
+        if ($gameId === GameModel::PACMAN) {
+            // metric = pellets comidos (objetivo del nivel = comerlos todos).
+            // Cotas generosas por tiempo: el valor real por pellet/power/fantasma/
+            // fruta varía, así que solo atajamos fraude grosero.
+            $seconds = $durationMs / 1000;
+            $maxPellets = (int) ($seconds * 12) + 30;
+            if ($metric > $maxPellets) {
+                throw ApiException::unprocessable('Resultado de partida inválido');
+            }
+            // pellet=10, power=50, fantasma hasta 1600, fruta hasta 5000.
+            $maxScore = $metric * 50 + (int) ($seconds * 400) + 20000;
             if ($score > $maxScore) {
                 throw ApiException::unprocessable('Resultado de partida inválido');
             }
