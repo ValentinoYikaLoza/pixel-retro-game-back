@@ -18,30 +18,39 @@ use Illuminate\Database\Seeder;
  */
 class PacmanLevelSeeder extends Seeder
 {
-    /** Comestibles del maze L1 (validado: 228 pellets + 4 power). */
-    private const L1_PELLETS = 232;
-
     public function run(): void
     {
-        // [level, tick_ms (ms/casilla), target_score]
+        // 10 niveles. La dificultad sube combinando: velocidad (tick_ms ↓),
+        // mapa (rota A→C→B→D, cada vez más cerrado) y la IA de fantasmas
+        // (frightened más corto, menos scatter, salen antes) — esto último se
+        // deriva del nivel en el cliente.
+        //
+        // target_score = nº de comestibles del mapa de ese nivel (validado):
+        //   A=232, C=248, B=266, D=258. grid_height = filas del mapa (A/C=29,
+        //   B/D=28). El layout del maze vive en el cliente (arte fijo), por eso
+        //   walls va vacío.
+        //
+        // [level, tick_ms (ms/casilla), target_score, grid_height]
         $defs = [
-            [1, 165, self::L1_PELLETS],
-            [2, 155, self::L1_PELLETS],
-            [3, 145, self::L1_PELLETS],
-            [4, 135, self::L1_PELLETS],
-            [5, 128, self::L1_PELLETS],
-            [6, 120, self::L1_PELLETS],
-            [7, 113, self::L1_PELLETS],
-            [8, 107, self::L1_PELLETS],
+            [1, 165, 232, 29], // A
+            [2, 157, 232, 29], // A
+            [3, 150, 248, 29], // C
+            [4, 143, 248, 29], // C
+            [5, 136, 266, 28], // B
+            [6, 129, 266, 28], // B
+            [7, 122, 258, 28], // D
+            [8, 115, 258, 28], // D
+            [9, 108, 266, 28], // B
+            [10, 100, 258, 28], // D
         ];
 
-        foreach ($defs as [$level, $tick, $target]) {
+        foreach ($defs as [$level, $tick, $target, $gridH]) {
             GameLevelModel::updateOrCreate(
                 ['game_id' => GameModel::PACMAN, 'level' => $level],
                 [
                     'tick_ms' => $tick,
                     'grid_width' => 28,
-                    'grid_height' => 29,
+                    'grid_height' => $gridH,
                     'wrap_around' => true, // túnel: el cliente envuelve la fila central
                     'walls' => [],
                     'target_score' => $target,
