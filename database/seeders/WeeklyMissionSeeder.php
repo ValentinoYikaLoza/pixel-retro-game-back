@@ -9,41 +9,28 @@ use App\Models\WeeklyMissionModel;
 use Illuminate\Database\Seeder;
 
 /**
- * Pool CURADO de misiones semanales (metas mayores que las diarias). Una de
- * cada tipo por juego; solo las `active` se asignan.
+ * Pool CURADO de misiones semanales (metas mayores que las diarias). Valores
+ * afinados por juego. Reusa el upsert curado de DailyMissionSeeder.
  */
 class WeeklyMissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $games = [
-            GameModel::SNAKE => 'Snake',
-            GameModel::TETRIS => 'Tetris',
-            GameModel::PIXEL_INVADERS => 'Pixel Invaders',
-            GameModel::PACMAN => 'Pacman',
+        $tpl = [
+            MissionTypeModel::POINTS => 'Acumula %d puntos en %s esta semana',
+            MissionTypeModel::MATCHES => 'Juega %d partidas de %s esta semana',
+            MissionTypeModel::SINGLE_GAME_SCORE => 'Haz %d puntos en una sola partida de %s',
         ];
 
-        $defs = [
-            [MissionTypeModel::POINTS, 5000, RewardModel::SILVER, 'Acumula %d puntos en %s esta semana'],
-            [MissionTypeModel::MATCHES, 25, RewardModel::SILVER, 'Juega %d partidas de %s esta semana'],
-            [MissionTypeModel::SINGLE_GAME_SCORE, 1200, RewardModel::GOLD, 'Haz %d puntos en una sola partida de %s'],
+        $S = RewardModel::SILVER;
+        $G = RewardModel::GOLD;
+        $config = [
+            [GameModel::SNAKE, 'Snake', ['p' => [800, $S], 'm' => [25, $S], 's' => [70, $G]]],
+            [GameModel::TETRIS, 'Tetris', ['p' => [28000, $S], 'm' => [25, $S], 's' => [2500, $G]]],
+            [GameModel::PIXEL_INVADERS, 'Pixel Invaders', ['p' => [28000, $S], 'm' => [25, $S], 's' => [2500, $G]]],
+            [GameModel::PACMAN, 'Pacman', ['p' => [40000, $S], 'm' => [25, $S], 's' => [4000, $G]]],
         ];
 
-        WeeklyMissionModel::query()->update(['active' => false]);
-
-        $id = 1;
-        foreach ($games as $gameId => $gameName) {
-            foreach ($defs as [$type, $value, $reward, $template]) {
-                WeeklyMissionModel::updateOrCreate(['id' => $id], [
-                    'description' => sprintf($template, $value, $gameName),
-                    'total_value' => $value,
-                    'game_id' => $gameId,
-                    'mission_type_id' => $type,
-                    'reward_id' => $reward,
-                    'active' => true,
-                ]);
-                $id++;
-            }
-        }
+        DailyMissionSeeder::seedCurated(WeeklyMissionModel::class, $tpl, $config);
     }
 }
